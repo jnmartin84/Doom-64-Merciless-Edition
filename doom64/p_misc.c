@@ -660,7 +660,21 @@ void P_SetMovingCamera(line_t *line) // 8000F2F8
 void P_RefreshVideo(void) // [Immorpher] video refresh
 {
 	OSViMode *ViMode;
-	
+#if SCREEN_WD == 640
+    if(osTvType == OS_TV_PAL)
+    {
+        ViMode = &osViModeTable[OS_VI_PAL_HPN2];
+    }
+    else if(osTvType == OS_TV_NTSC)
+    {
+        ViMode = &osViModeTable[OS_VI_NTSC_HPN2];
+    }
+    else if(osTvType == OS_TV_MPAL)
+    {
+        ViMode = &osViModeTable[OS_VI_MPAL_HPN2];
+    }
+#endif	
+#if SCREEN_WD == 320	
 	if(antialiasing==true && interlacing==true)
 	{
 		if(osTvType == OS_TV_PAL)
@@ -721,7 +735,7 @@ void P_RefreshVideo(void) // [Immorpher] video refresh
 			ViMode = &osViModeTable[OS_VI_MPAL_LPN2];
 		}
 	}
-	
+#endif	
     osViSetMode(ViMode);
 	
 	if(DitherFilter == true) // [Immorpher] Dither filter option

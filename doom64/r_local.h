@@ -286,7 +286,7 @@ void	R_RenderBSPNode (int bspnum);
 typedef void(*skyfunc_t)();
 extern fixed_t  FogNear;            // 800A8120
 extern int      FogColor;           // 800A8124
-skyfunc_t       R_RenderSKY;        // 800A8130
+extern skyfunc_t       R_RenderSKY;        // 800A8130
 extern int      Skyfadeback;        // 800A814C
 
 void R_SetupSky(void);

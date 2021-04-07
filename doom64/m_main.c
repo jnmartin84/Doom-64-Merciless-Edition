@@ -339,7 +339,7 @@ int SfxVolume = 100;             // 8005A7C0
 int MusVolume = 80;             // 8005A7C4
 int brightness = 100;             // 8005A7C8
 int M_SENSITIVITY = 0;          // 8005A7CC
-boolean FeaturesUnlocked = false; // 8005A7D0
+boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int VideoFilter = 0; // [GEC & Immorpher] Set 3 point filtering on or off
 boolean antialiasing = false; // [Immorpher] Anti-Aliasing
@@ -699,7 +699,7 @@ void M_MenuGameDrawer(void) // 80007C48
         M_DrawBackground(56, 57, 80, "TITLE");
 
         if (MenuItem != Menu_Title) {
-            M_DrawOverlay(0, 0, 320, 240, 96);
+            M_DrawOverlay(0, 0, SCREEN_WD, SCREEN_HT, 96);
         }
 
         MenuCall();
@@ -2570,11 +2570,11 @@ void M_DrawBackground(int x, int y, int color, char *name) // 80009A68
                        ((width - 1) << 2), (((t + yh) - 1) << 2));
 
         gSPTextureRectangle(GFX1++,
-            (x << 2), (y << 2),
-            ((width + x) << 2), ((yh + y) << 2),
+            (x << 2)*(SCREEN_WD/320), (y << 2)*(SCREEN_WD/320),
+            ((width + x) << 2)*(SCREEN_WD/320), ((yh + y) << 2)*(SCREEN_WD/320),
             G_TX_RENDERTILE,
             (0 << 5), (t << 5),
-            (1 << 10), (1 << 10));
+            (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
 
         height -= yh;
         t += yh;

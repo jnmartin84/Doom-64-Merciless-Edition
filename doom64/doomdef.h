@@ -21,8 +21,8 @@
 /*-----------*/
 /* SYSTEM IO */
 /*-----------*/
-#define	SCREEN_HT	240
-#define	SCREEN_WD	320
+#define	SCREEN_HT	480
+#define	SCREEN_WD	640
 
 extern u32 cfb[2][SCREEN_WD*SCREEN_HT]; // 8036A000
 
