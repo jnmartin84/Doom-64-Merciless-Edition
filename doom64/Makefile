@@ -36,7 +36,7 @@ APP	=	doom64.out
 
 TARGETS	=	doom64.n64
 
-ASMFILES   =	wessint_s.s d_memset.s d_memcpy.s m_fixed.s
+ASMFILES   =    wessint_s.s
 
 CODEFILES   =	graph.c asci.c \
 				doominfo.c \
@@ -112,7 +112,7 @@ CODEFILES   =	graph.c asci.c \
 
 WESSLIB   =	#wesslib.o
 
-CODEOBJECTS =	$(CODEFILES:.c=.o) $(ASMFILES:.s=.o) $(WESSLIB)
+CODEOBJECTS =   $(CODEFILES:.c=.o) $(ASMFILES:.s=.o) $(WESSLIB)
 
 DATAFILES   =	mem_heap.c audio_heap.c cfb.c
 
@@ -147,8 +147,11 @@ endif
 
 include $(COMMONRULES)
 
-$(CODESEGMENT):	$(CODEOBJECTS)
-		$(LD) -o $(CODESEGMENT) -r $(CODEOBJECTS) $(LDFLAGS)
+$(CODESEGMENT):        $(CODEOBJECTS)
+        gcc -mips3 -I. -G 0 -c -O3 m_fixed.S
+        gcc -mips3 -I. -G 0 -c -O3 d_memset.S
+        gcc -mips3 -I. -G 0 -c -O3 d_memcpy.S
+        $(LD) -o $(CODESEGMENT) -r $(CODEOBJECTS) d_memset.o d_memcpy.o m_fixed.o $(LDFLAGS)
 
 $(TARGETS) $(APP):	spec $(OBJECTS)
 ifeq ($(FINAL), YES)

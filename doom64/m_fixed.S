@@ -27,8 +27,6 @@
 /*fixed_t FixedDiv(fixed_t a, fixed_t b)*/
         .global FixedDiv2
 	.global	FixedDiv
-	.set	nomips16
-	.set	nomicromips
         .ent    FixedDiv2
 	.ent	FixedDiv
 	.type	FixedDiv2, @function
@@ -66,15 +64,14 @@ _FixedDiv_return_INT_MIN:
 */
 	.set	macro
 	.set	reorder
-	.end	FixedDiv
+        .end    FixedDiv2
+        .end    FixedDiv
     .size   FixedDiv, .-FixedDiv
 
 #endif
 #if 1
 /*fixed_t FixedMul(fixed_t a, fixed_t b)*/
 	.global	FixedMul
-	.set	nomips16
-	.set	nomicromips
 	.ent	FixedMul
 	.type	FixedMul, @function
 	.set	noreorder

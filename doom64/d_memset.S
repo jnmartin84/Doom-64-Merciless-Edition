@@ -59,8 +59,6 @@
 #define fp $30
 #define ra $31
 
-#define __mips 3
-
 #ifndef L
 #define L(label) $L ## label
 #endif

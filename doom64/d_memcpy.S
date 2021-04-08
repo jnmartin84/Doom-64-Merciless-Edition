@@ -1,4 +1,3 @@
-#define __mips 3
 #define zero $0
 #define at $1
 #define v0 $2
