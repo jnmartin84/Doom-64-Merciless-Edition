@@ -19,14 +19,16 @@ cd %mypath%
 
 @echo on
 
+gcc -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -G 0 -c -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -O3 m_fixed.s
+
 make PLATFORM=PARTNER
 
 @echo off
 ::remove the ".o" extension from the wesslib temporarily:
 ren "WESSLIB.o" "WESSLIB"
 
-::remove_all:
-	del *.o
+::::remove_all:
+::        del *.o
 
 ::restore the ".o" extension of the wesslib:
 ren "WESSLIB" "WESSLIB.o"

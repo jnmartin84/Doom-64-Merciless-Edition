@@ -36,8 +36,7 @@ APP	=	doom64.out
 
 TARGETS	=	doom64.n64
 
-ASMFILES   =	wessint_s.s
-#m_fixed_s.s
+ASMFILES   =	wessint_s.s d_memset.s d_memcpy.s m_fixed.s
 
 CODEFILES   =	graph.c asci.c \
 				doominfo.c \
@@ -51,7 +50,6 @@ CODEFILES   =	graph.c asci.c \
 				f_main.c \
 				g_game.c \
 				in_main.c \
-				m_fixed.c \
 				i_main.c \
 				m_main.c \
 				m_password.c \

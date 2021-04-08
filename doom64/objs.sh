@@ -8,6 +8,7 @@ rm doom64.out
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c d_memset.S -o d_memset.o 
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c d_memcpy.S -o d_memcpy.o 
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c m_fixed.S -o m_fixed.o 
+#exit 0
 #$N64_INST/bin/mips64-elf-gcc.exe $CFLAGS  -c m_fixed.c -o m_fixed.o 
 $N64_INST/bin/mips64-elf-gcc.exe $CFLAGS  -c graph.c -o graph.o 
 $N64_INST/bin/mips64-elf-gcc.exe $CFLAGS  -c asci.c -o asci.o 

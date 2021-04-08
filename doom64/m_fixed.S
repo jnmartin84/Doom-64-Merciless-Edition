@@ -25,15 +25,18 @@
 // 16.16 Fixed-point divide.
 //
 /*fixed_t FixedDiv(fixed_t a, fixed_t b)*/
+        .global FixedDiv2
 	.global	FixedDiv
 	.set	nomips16
 	.set	nomicromips
+        .ent    FixedDiv2
 	.ent	FixedDiv
+	.type	FixedDiv2, @function
 	.type	FixedDiv, @function
 	.set	noreorder
 	.set	nomacro
 	.align 3
-
+FixedDiv2:
 FixedDiv:
 /*	xor	t5,	a0,	a1
 	sra	t0,	a0,	31
@@ -65,6 +68,7 @@ _FixedDiv_return_INT_MIN:
 	.set	reorder
 	.end	FixedDiv
     .size   FixedDiv, .-FixedDiv
+
 #endif
 #if 1
 /*fixed_t FixedMul(fixed_t a, fixed_t b)*/
