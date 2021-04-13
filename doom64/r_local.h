@@ -296,7 +296,8 @@ void R_SetupSky(void);
 /*--------*/
 void R_RenderAll(void);
 void R_RenderPSprites(void);
-
+void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos, int ypos, int color);
+void R_RenderFilter(void);
 
 /* to get a global angle from cartesian coordinates, the coordinates are */
 /* flipped until they are in the first octant of the coordinate system, then */

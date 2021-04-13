@@ -1,6 +1,7 @@
 /* st_main.c -- status bar */
 
 #include "doomdef.h"
+#include "p_spec.h"
 #include "st_main.h"
 #include "r_local.h"
 

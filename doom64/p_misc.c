@@ -2,6 +2,7 @@
 
 #include "doomdef.h"
 #include "p_local.h"
+#include "p_spec.h"
 #include "r_local.h"
 
 /*

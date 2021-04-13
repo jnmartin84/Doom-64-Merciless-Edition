@@ -11,7 +11,7 @@ endif
 
 ifeq ($(FINAL), YES)
 	OPTIMIZER       = -O3
-	LCDEFS          = -DNDEBUG -D_FINALROM -DF3DEX_GBI_2
+	LCDEFS          = $(gccsw) -DNDEBUG -D_FINALROM -DF3DEX_GBI_2
 ifeq ($(PLATFORM), BB)
 	N64LIB          = -lultra_rom
 else

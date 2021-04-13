@@ -64,7 +64,6 @@ _FixedDiv_return_INT_MIN:
 */
 	.set	macro
 	.set	reorder
-        .end    FixedDiv2
         .end    FixedDiv
     .size   FixedDiv, .-FixedDiv
 

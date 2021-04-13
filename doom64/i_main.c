@@ -5,6 +5,7 @@
 
 #include "i_main.h"
 #include "doomdef.h"
+#include "r_local.h"
 #include "st_main.h"
 
 // text for debug
@@ -926,7 +927,32 @@ void I_WIPE_FadeOutScreen(void) // 80006D34
 {
     if (SCREEN_WD == 640)
     {
-        I_ClearFrame();
+int outcnt = 248;	
+do {
+	I_CheckGFX();
+
+    gDPPipeSync(GFX1++);
+
+    gDPSetCycleType(GFX1++, G_CYC_1CYCLE);
+
+    gDPSetTextureLUT(GFX1++, G_TT_RGBA16);
+    gDPSetTexturePersp(GFX1++, G_TP_NONE);
+
+    gDPSetAlphaCompare(GFX1++, G_AC_THRESHOLD);
+
+    gDPSetBlendColor(GFX1++, 0, 0, 0, outcnt);
+    gDPSetCombineMode(GFX1++, G_CC_D64COMB05, G_CC_D64COMB05);
+    gDPSetRenderMode(GFX1++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+
+            gDPSetPrimColor(GFX1++, 0, 0, outcnt, outcnt, outcnt, 0);
+
+    gDPFillRectangle(GFX1++, 0, 0, 639, 479);
+            I_DrawFrame();
+            outcnt -= 8;
+        } while (outcnt >= 0);
+
+        I_GetScreenGrab();
+//        Z_Free(fb);
     }
     else
     {

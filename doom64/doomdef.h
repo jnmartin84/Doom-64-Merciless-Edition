@@ -5,9 +5,12 @@
 /* ULTRA64 LIBRARIES */
 #include <ultra64.h>
 #include "ultratypes.h"
+#include <PR/os_internal.h>
 #include <PR/ramrom.h>	/* needed for argument passing into the app */
 #include <assert.h>
 #include <libaudio.h>
+
+extern int  abs(int);
 
 /* TEST DEBUG */
 #include "graph.h"
@@ -530,6 +533,7 @@ int MiniLoop ( void (*start)(void),  void (*stop)()
 int	G_Ticker (void);
 void G_Drawer (void);
 void G_RunGame (void);
+void G_PlayerFinishLevel (int player);
 
 /*================================== */
 

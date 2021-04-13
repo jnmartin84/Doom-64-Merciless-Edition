@@ -4,6 +4,7 @@
 #include "doomdef.h"
 #include "p_spec.h"
 #include "r_local.h"
+#include "st_main.h"
 
 int gamevbls;		            // 80063130 /* may not really be vbls in multiplayer */
 extern int gametic;		            // 80063134

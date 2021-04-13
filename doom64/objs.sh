@@ -1,10 +1,10 @@
-export CFLAGS="-mips3 -O0 -mfix4300 -fexpensive-optimizations -falign-functions -falign-jumps -falign-labels -falign-loops -freorder-blocks -fforward-propagate -fguess-branch-probability -fdce -fdelayed-branch -fschedule-insns -fcode-hoisting -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_LANGUAGE_C -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include"
+export CFLAGS="-std=gnu99 -mips3 -O0 -mfix4300 -ftree-switch-conversion -ffinite-loops -ftree-dominator-opts -ftree-dse -ftree-ch -ftree-loop-optimize -ftree-scev-cprop -ftree-dce -fipa-cp -fipa-bit-cp -fipa-vrp -ftree-pre -fexpensive-optimizations -falign-functions -falign-jumps -falign-labels -falign-loops -freorder-blocks -fforward-propagate -fguess-branch-probability -fdce -fdelayed-branch -fschedule-insns -fcode-hoisting -G0 -ffreestanding -fno-PIC -mabi=32 -mgp32 -mfp32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_LANGUAGE_C -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include"
 mv WESSLIB.o WESSLIB.n
 rm *.o
 mv WESSLIB.n WESSLIB.o
-rm doom64.n64
-rm doom64.z64
-rm doom64.out
+#rm doom64.n64
+#rm doom64.z64
+#rm doom64.out
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c d_memset.S -o d_memset.o 
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c d_memcpy.S -o d_memcpy.o 
 $N64_INST/bin/mips64-elf-gcc.exe -mips3 -O0 -G0 -ffreestanding -fno-PIC -mabi=32 -mno-shared -mno-abicalls -march=vr4300 -mtune=vr4300 -funsigned-char -D_ULTRA64 -D__EXTENSIONS__  -DNDEBUG -D_FINALROM -DF3DEX_GBI_2 -I. -I./ultra/usr/include/PR  -I./ultra/usr/include  -c m_fixed.S -o m_fixed.o 
