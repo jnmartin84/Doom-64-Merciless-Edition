@@ -134,7 +134,7 @@ short GetIntsPerSec(void) // 800353DC
 
 unsigned long CalcPartsPerInt(short ips, short ppq, short qpm) // 800353E4
 {
-	return (u32) ((s64)qpm  * (s64)ppq * 1092) / (u64)ips;
+	return (u32) ((s32)qpm  * (s32)ppq * 1092) / (u32)ips;
 }
 
 long WessInterruptHandler(void) // 80035458
