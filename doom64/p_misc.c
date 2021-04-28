@@ -775,9 +775,6 @@ extern maplights_t *maplights;     // 800A5EA4
 
 void P_SetLightFactor(int lightfactor) // 8000F458
 {
-    register u32 fpstat, fpstatset;
-
-    float l_flt;
     light_t *light;
     maplights_t *maplight;
     int base_r, base_g, base_b;
@@ -793,7 +790,10 @@ void P_SetLightFactor(int lightfactor) // 8000F458
     {
         if (i > 255)
         {
-            LightGetHSV(maplight->r, maplight->g, maplight->b, &h, &s, &v);
+            int hsv = LightGetHSV(maplight->r, maplight->g, maplight->b);
+            h = (hsv >> 16) & 0xFF;
+            s = (hsv >>  8) & 0xFF;
+            v = (hsv      ) & 0xFF;
             maplight++;
             factor = v;
         }
@@ -802,30 +802,17 @@ void P_SetLightFactor(int lightfactor) // 8000F458
             factor = i;
         }
 
-        // fetch the current floating-point control/status register
-        fpstat = __osGetFpcCsr();
-        // enable round to negative infinity for floating point
-        fpstatset = (fpstat | FPCSR_RM_RM) ^ 2;
-        // _Disable_ unimplemented operation exception for floating point.
-        __osSetFpcCsr(fpstatset);
-
-        l_flt = (float)factor * ((float)lightfactor / 100.0);
-
-        v = (int)l_flt;
+        v = (factor * lightfactor) / 100;
         if (v > 255) {
             v = 255;
         }
 
         if (i > 255)
         {
-            LightGetRGB(h, s, v, &r, &g, &b);
-            base_r = r;
-            base_g = g;
-            base_b = b;
-            /*base_r = maplight->r;
-            base_g = maplight->g;
-            base_b = maplight->b;
-            maplight++;*/
+            int rgb = LightGetRGB(h, s, v);
+            base_r = (rgb >> 16) & 0xFF;
+            base_g = (rgb >>  8) & 0xFF;
+            base_b = (rgb      ) & 0xFF;
         }
         else
         {
