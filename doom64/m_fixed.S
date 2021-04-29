@@ -1,6 +1,6 @@
 //
 // Copyright(C) 1993-1996 Id Software, Inc.
-// Copyright(C) 2014-2017 Jason Martin (jnmartin84)
+// Copyright(C) 2014-2021 Jason Martin (jnmartin84)
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -15,19 +15,18 @@
 // DESCRIPTION:
 //	Fixed point implementation.
 //
-
 #include "mips.h"
 #define	FRACBITS	16
-#if 1
+
 //
 // FixedDiv
 //
 // 16.16 Fixed-point divide.
 //
 /*fixed_t FixedDiv(fixed_t a, fixed_t b)*/
-        .global FixedDiv2
+	.global FixedDiv2
 	.global	FixedDiv
-        .ent    FixedDiv2
+	.ent	FixedDiv2
 	.ent	FixedDiv
 	.type	FixedDiv2, @function
 	.type	FixedDiv, @function
@@ -36,6 +35,10 @@
 	.align 3
 FixedDiv2:
 FixedDiv:
+// this is all of the argument test code that 
+// is in the C version but it is pretty much 
+// unnecessary from experience with 64Doom port
+// and here
 /*	xor	t5,	a0,	a1
 	sra	t0,	a0,	31
 	sra	t2,	a1,	31
@@ -45,46 +48,42 @@ FixedDiv:
 	subu	t3,	t3,	t2
 	sra	t1,	t1,	14
 	slt	t4,	t3,	t1
-	bne	t4,	zero,	_FixedDiv_test*/
+	bne	t4,	zero,	_FixedDiv_test
+	*/
 	dsll	a0,	a0,	FRACBITS
-//_FixedDiv_work:
+/*_FixedDiv_work:*/
 	ddiv	zero,	a0,	a1
+//	teq	a1,zero,0x7
 	jr	ra
 	mflo	v0
 /*_FixedDiv_test:
-	.align 3
 	bltz	t5,	_FixedDiv_return_INT_MIN
 	lui	v0,	0x7FFF
 	jr	ra
 	ori	v0,	v0,	0xFFFF
 _FixedDiv_return_INT_MIN:
-	.align 3
 	jr	ra
 	lui	v0,	0x8000
 */
 	.set	macro
 	.set	reorder
-        .end    FixedDiv
-    .size   FixedDiv, .-FixedDiv
+	.end	FixedDiv
+	.size   FixedDiv, .-FixedDiv
 
-#endif
-#if 1
 /*fixed_t FixedMul(fixed_t a, fixed_t b)*/
 	.global	FixedMul
 	.ent	FixedMul
 	.type	FixedMul, @function
 	.set	noreorder
 	.set	nomacro
-	.align 8
-
+	.align 3
 FixedMul:
 	dmultu	a1,	a0
 	mflo	v0
 	jr	ra
-	dsra     v0, 16
+	dsra	 v0, 16
 
 	.set	macro
 	.set	reorder
 	.end	FixedMul
-    .size   FixedMul, .-FixedMul
-#endif
+	.size   FixedMul, .-FixedMul
