@@ -11,8 +11,8 @@ byte *sfontlump;     // 800A81F8
 byte *statuslump;   // 800A81FC
 int sumbolslump;    // 800A8204
 
-int err_text_x;     // 800A8208
-int err_text_y;     // 800A820C
+int err_text_x = 20;     // 800A8208
+int err_text_y = 20;     // 800A820C
 
 symboldata_t symboldata[] = // 8005B260
 {

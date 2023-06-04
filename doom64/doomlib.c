@@ -30,7 +30,7 @@ void D_memmove(void *dest, void *src) // 800019F0
         *p2++ = *p1++;
     }
 }
-
+#if 0
 /*
 ====================
 =
@@ -131,7 +131,7 @@ void D_memcpy(void *dest, void *src, int count) // 80001ACC
         }
     }
 }
-
+#endif
 /*
 ====================
 =

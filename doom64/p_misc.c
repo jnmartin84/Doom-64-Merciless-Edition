@@ -665,60 +665,60 @@ void P_RefreshVideo(void) // [Immorpher] video refresh
 	{
 		if(osTvType == OS_TV_PAL)
 		{
-			ViMode = &osViModeTable[OS_VI_PAL_LAF2];
+			ViMode = &osViModeTable[OS_VI_PAL_LAF1];
 		}
 		else if(osTvType == OS_TV_NTSC)
 		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LAF2];
+			ViMode = &osViModeTable[OS_VI_NTSC_LAF1];
 		}
 		else if(osTvType == OS_TV_MPAL)
 		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LAF2];
+			ViMode = &osViModeTable[OS_VI_MPAL_LAF1];
 		}
 	}
 	else if(antialiasing==true)
 	{
 		if(osTvType == OS_TV_PAL)
 		{
-			ViMode = &osViModeTable[OS_VI_PAL_LAN2];
+			ViMode = &osViModeTable[OS_VI_PAL_LAN1];
 		}
 		else if(osTvType == OS_TV_NTSC)
 		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LAN2];
+			ViMode = &osViModeTable[OS_VI_NTSC_LAN1];
 		}
 		else if(osTvType == OS_TV_MPAL)
 		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LAN2];
+			ViMode = &osViModeTable[OS_VI_MPAL_LAN1];
 		}
 	}
 	else if(interlacing==true)
 	{
 		if(osTvType == OS_TV_PAL)
 		{
-			ViMode = &osViModeTable[OS_VI_PAL_LPF2];
+			ViMode = &osViModeTable[OS_VI_PAL_LPF1];
 		}
 		else if(osTvType == OS_TV_NTSC)
 		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LPF2];
+			ViMode = &osViModeTable[OS_VI_NTSC_LPF1];
 		}
 		else if(osTvType == OS_TV_MPAL)
 		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LPF2];
+			ViMode = &osViModeTable[OS_VI_MPAL_LPF1];
 		}
 	}
 	else
 	{
 		if(osTvType == OS_TV_PAL)
 		{
-			ViMode = &osViModeTable[OS_VI_PAL_LPN2];
+			ViMode = &osViModeTable[OS_VI_PAL_LPN1];
 		}
 		else if(osTvType == OS_TV_NTSC)
 		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LPN2];
+			ViMode = &osViModeTable[OS_VI_NTSC_LPN1];
 		}
 		else if(osTvType == OS_TV_MPAL)
 		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LPN2];
+			ViMode = &osViModeTable[OS_VI_MPAL_LPN1];
 		}
 	}
 	
@@ -778,7 +778,10 @@ void P_SetLightFactor(int lightfactor) // 8000F458
     {
         if (i > 255)
         {
-            LightGetHSV(maplight->r, maplight->g, maplight->b, &h, &s, &v);
+            int hsv = LightGetHSV(maplight->r, maplight->g, maplight->b);
+            h = (hsv >> 16) & 0xFF;
+            s = (hsv >>  8) & 0xFF;
+            v = (hsv      ) & 0xFF;
             maplight++;
             factor = v;
         }
@@ -803,10 +806,10 @@ void P_SetLightFactor(int lightfactor) // 8000F458
 
         if (i > 255)
         {
-            LightGetRGB(h, s, v, &r, &g, &b);
-            base_r = r;
-            base_g = g;
-            base_b = b;
+            int rgb = LightGetRGB(h, s, v);
+            base_r = (rgb >> 16) & 0xFF;
+            base_g = (rgb >>  8) & 0xFF;
+            base_b = (rgb      ) & 0xFF;
             /*base_r = maplight->r;
             base_g = maplight->g;
             base_b = maplight->b;

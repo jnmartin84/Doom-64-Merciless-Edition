@@ -144,8 +144,6 @@ int W_CheckNumForName(char *name, int hibit1, int hibit2) // 8002C0F4 removed un
 	    name++;
 	}
 
-	/* scan backwards so patch lump files take precedence */
-
 	lump_p = lumpinfo;
 	for(i = 0; i < numlumps; i++)
     {
@@ -441,8 +439,6 @@ int W_MapGetNumForName(char *name) // 8002C7D0
 
 	    name++;
 	}
-
-	/* scan backwards so patch lump files take precedence */
 
 	lump_p = maplump;
 	for(i = 0; i < mapnumlumps; i++)

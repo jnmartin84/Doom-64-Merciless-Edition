@@ -83,14 +83,14 @@ fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
 =
 ===============
 */
-
+#if 0
 fixed_t FixedMul(fixed_t a, fixed_t b) // 800044D0
 {
     s64 result = ((s64) a * (s64) b) >> 16;
 
     return (fixed_t) result;
 }
-
+#endif
 #if 0
 s64 FixedMul2(s64 a, s64 b) // 800044D0
 {
@@ -121,10 +121,11 @@ s64 FixedMul2(s64 a, s64 b) // 800044D0
 =
 ===============
 */
-
+#if 0
 fixed_t FixedDiv2(fixed_t a, fixed_t b) // 800044E4
 {
     s64 result = ((s64) a << 16) / (s64)b;
 
     return (fixed_t) result;
 }
+#endif
