@@ -16,23 +16,19 @@
 
 fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
 {
-    fixed_t     aa, bb;
-    unsigned    c;
-    int         sign;
+    register unsigned    c;
+    register unsigned    bit;
+    register int    sign;
 
     sign = a^b;
 
     if (a < 0)
-        aa = -a;
-    else
-        aa = a;
+        a = -a;
 
     if (b < 0)
-        bb = -b;
-    else
-        bb = b;
+        b = -b;
 
-    if ((unsigned)(aa >> 14) >= bb)
+    if ((unsigned)(a >> 14) >= b)
     {
         if (sign < 0)
             c = MININT;
@@ -40,9 +36,72 @@ fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
             c = MAXINT;
     }
     else
-        c = (fixed_t) FixedDiv2(a, b);
+	{
+		bit = 0x10000;
+		do
+		{
+			b <<= 1;
+			bit <<= 1;
+		} while (b < a);
+
+		c = 0;
+		do
+		{
+			if (a >= b)
+			{
+				a -= b;
+				c |= bit;
+			}
+			a <<= 1;
+			bit >>= 1;
+		} while (bit && a);
+
+		if (sign < 0)
+        {
+			c = -c;
+        }
+	}
 
     return c;
+}
+
+fixed_t FixedDiv2(register fixed_t a, register fixed_t b)//L8003EEF0()
+{
+	register unsigned        c;
+	register unsigned        bit;
+	register int             sign;
+
+	sign = a^b;
+
+	if (a <= 0)
+		a = -a;
+
+	if (b <= 0)
+		b = -b;
+
+	bit = 0x10000;
+	do
+	{
+		b <<= 1;
+		bit <<= 1;
+	} while (b < a);
+
+	c = 0;
+	do
+	{
+		if (a >= b)
+		{
+			a -= b;
+			c |= bit;
+		}
+		a <<= 1;
+		bit >>= 1;
+	} while (bit && a);
+
+	if (sign < 0)
+		c = -c;
+
+	return c;
 }
 
 /*
@@ -53,47 +112,6 @@ fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
 ===============
 */
 
-fixed_t FixedMul(fixed_t a, fixed_t b) // 800044D0
-{
-    s64 result = ((s64) a * (s64) b) >> 16;
-
-    return (fixed_t) result;
-}
-
-#if 0
-s64 FixedMul2(s64 a, s64 b) // 800044D0
-{
-    register s64 flo;
-
-    //asm(".set noreorder");
-    asm("dmult  $4, $5");
-    asm("mflo   $3");
-    asm("dsra   $3, 16");
-    asm("move   %0, $3":"=r" (flo):);
-
-    return (fixed_t) flo;
-
-    /*
-    dmult   $4, $5
-    mflo    $2
-    dsra    $2, $2, 16
-    jr      $31
-    nop
-    */
-}
-#endif // 0
-
 /*
-===============
-=
-= FixedDiv2
-=
-===============
+see m_fixed_s.s
 */
-
-fixed_t FixedDiv2(fixed_t a, fixed_t b) // 800044E4
-{
-    s64 result = ((s64) a << 16) / (s64)b;
-
-    return (fixed_t) result;
-}

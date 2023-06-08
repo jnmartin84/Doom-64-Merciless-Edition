@@ -50,49 +50,7 @@ FixedMul:   /* 800044D0 */
 
     dmult   $4, $5
     mflo    $2
-    dsra    $2, $2, 16
     jr      $31
-    nop
+    dsra    $2, $2, 16
 
 .end FixedMul
-
-/*-------------------------------------------*/
-/* fixed_t	FixedDiv2 (fixed_t a, fixed_t b) */
-/*-------------------------------------------*/
-
-.globl FixedDiv2
-.ent FixedDiv2
-
-FixedDiv2:   /* 800044E4 */
-
-    dsll    $4, $4, 16
-    ddiv    $4, $5
-
-/*---------------------------------------------------*/
-/* automatically generated with opcode (ddiv $4, $5) */
-/* and -mips3 on command line                        */
-/*---------------------------------------------------*/
-/*
-    bne     $5, $0, loc_800044F8
-    nop
-    break   0x1C00
-
-loc_800044F8:
-    daddiu  $1, $0, 0xffff
-    bne     $5, $1, loc_80004514
-    daddiu  $1, $0, 0x0001
-    dsll32  $1, $1, 0x1f
-    bne     $4, $1, loc_80004514
-    nop
-    break   0x1800
-
-loc_80004514:
-    mflo    $4
-*/
-/*--------------------------------------------------*/
-
-    mflo    $2
-    jr      $31
-    nop
-
-.end FixedDiv2
