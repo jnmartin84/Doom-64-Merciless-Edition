@@ -43,11 +43,10 @@
 /* fixed_t	FixedMul (fixed_t a, fixed_t b) */
 /*------------------------------------------*/
 
+.align 3
 .globl FixedMul
 .ent FixedMul
-
 FixedMul:   /* 800044D0 */
-
     dmult   $4, $5
     mflo    $2
     jr      $31
