@@ -337,9 +337,9 @@ boolean enable_messages = true; // 8005A7B8
 int HUDopacity = 128;			// [Immorpher] HUD opacity
 int SfxVolume = 100;             // 8005A7C0
 int MusVolume = 80;             // 8005A7C4
-int brightness = 100;             // 8005A7C8
+int brightness = 200;             // 8005A7C8
 int M_SENSITIVITY = 0;          // 8005A7CC
-boolean FeaturesUnlocked = false; // 8005A7D0
+boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int VideoFilter = 0; // [GEC & Immorpher] Set 3 point filtering on or off
 boolean antialiasing = false; // [Immorpher] Anti-Aliasing
@@ -347,12 +347,12 @@ boolean interlacing = false; // [Immorpher] Interlacing
 boolean DitherFilter = false; // [Immorpher] Dither filter
 int ColorDither = 0; // [Immorpher] Color dithering options (Off, Square, Bayer, Noise)
 int FlashBrightness = 32; // [Immorpher] Strobe brightness adjustment, will need to change to float
-boolean Autorun = false; // [Immorpher] New autorun option!
+boolean Autorun = true; // [Immorpher] New autorun option!
 boolean runintroduction = false; // [Immorpher] New introduction sequence!
-boolean StoryText = true; // [Immorpher] Skip story cut scenes?
+boolean StoryText = false; // [Immorpher] Skip story cut scenes?
 boolean MapStats = false; // [Immorpher] Enable map statistics for automap?
 int HUDmargin = 15; // [Immorpher] HUD margin options (default 20)
-boolean ColoredHUD = true; // [Immorpher] Colored hud
+boolean ColoredHUD = false; // [Immorpher] Colored hud
 
 int TempConfiguration[13] = // 8005A80C
 {

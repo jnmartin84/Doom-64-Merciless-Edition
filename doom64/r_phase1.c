@@ -57,11 +57,13 @@ void R_RenderFilter(void)
 // Kick off the rendering process by initializing the solidsubsectors array and then
 // starting the BSP traversal.
 //
+u32 last_bsp_count;
 
 void R_BSP(void) // 80023F30
 {
     int count;
     subsector_t **sub;
+    u32 start_bsp_count = osGetCount();
 
     validcount++;
     rendersky = false;
@@ -92,6 +94,7 @@ void R_BSP(void) // 80023F30
         sub++;				/* Inc the sprite pointer */
         count--;
     }
+    last_bsp_count = ((osGetCount() - start_bsp_count) + last_bsp_count) / 2;
 }
 
 //
