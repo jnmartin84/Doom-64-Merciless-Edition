@@ -1,68 +1,69 @@
-/* am_main.c -- automap */
+// am_main.c -- automap
 
 #include "doomdef.h"
 #include "p_local.h"
+
+// externs - should probably be getting these from headers, that's future work to get those sorted out
 extern void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos, int ypos, int color);
+extern void ST_Message(int x, int y, char *text, int color);
 
-extern void ST_Message(int x,int y,char *text,int color);
-#define COLOR_RED     0xA40000FF
-#define COLOR_GREEN   0x00C000FF
-#define COLOR_BROWN   0x8A5C30ff
-#define COLOR_YELLOW  0xCCCC00FF
-#define COLOR_GREY    0x808080FF
-#define COLOR_AQUA    0x3373B3FF
+// defines
+#define COLOR_BLACK 0x00000000
+#define COLOR_RED 0xA40000FF
+#define COLOR_GREEN 0x00C000FF
+#define COLOR_BROWN 0x8A5C30ff
+#define COLOR_YELLOW 0xCCCC00FF
+#define COLOR_GREY 0x808080FF
+#define COLOR_AQUA 0x3373B3FF
+#define MAXSCALE 1500
+#define MINSCALE 200
+#define MAXSENSIVITY 10
 
-#define MAXSCALE	1500
-#define MINSCALE	200
+// globals
+fixed_t am_box[4];
+int am_plycolor;
+int am_plyblink;
 
-fixed_t am_box[4]; // 80063110
-int am_plycolor;    // 80063120
-int am_plyblink;    // 80063124
-
+// function prototypes
+void AM_Start(void);
+void AM_Control(player_t *player);
+void AM_Drawer(void);
 void AM_DrawSubsectors(player_t *player);
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color);
 void AM_DrawLine(player_t *player);
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color);
 
-/*================================================================= */
-/* */
-/* Start up Automap */
-/* */
-/*================================================================= */
-
-void AM_Start(void) // 800004D8
+//
+// Start up Automap
+//
+void AM_Start(void)
 {
     am_plycolor = 95;
     am_plyblink = 16;
 }
 
-/*
-==================
-=
-= AM_Control
-=
-= Called by P_PlayerThink before any other player processing
-=
-= Button bits can be eaten by clearing them in ticbuttons[playernum]
-==================
-*/
-
-#define MAXSENSIVITY    10
-
-void AM_Control (player_t *player) // 800004F4
+//
+// AM_Control
+//
+// Called by P_PlayerThink before any other player processing
+//
+// Button bits can be eaten by clearing them in ticbuttons[playernum]
+//
+void AM_Control(player_t *player)
 {
-	int buttons, oldbuttons;
+    int buttons, oldbuttons;
 
-	buttons_t   *cbuttons;
-	fixed_t     block[8];
-	angle_t     angle;
-	fixed_t     fs, fc;
-	fixed_t     x, y, x1, y1, x2, y2;
-	int         scale, sensitivity;
-	int         i;
+    buttons_t *cbuttons;
+    fixed_t block[8];
+    angle_t angle;
+    fixed_t fsc, fs, fc;
+    fixed_t x, y, x1, y1, x2, y2;
+    int scale, sensitivity;
+    int i;
 
-	if (gamepaused)
+    if (gamepaused)
+    {
         return;
-
+    }
     cbuttons = BT_DATA[0];
     buttons = ticbuttons[0];
     oldbuttons = oldticbuttons[0];
@@ -75,12 +76,12 @@ void AM_Control (player_t *player) // 800004F4
 
     if ((buttons & cbuttons->BT_MAP) && !(oldbuttons & cbuttons->BT_MAP))
     {
-        if(player->automapflags & AF_SUBSEC)
+        if (player->automapflags & AF_SUBSEC)
         {
             player->automapflags &= ~AF_SUBSEC;
             player->automapflags |= AF_LINES;
         }
-        else if(player->automapflags & AF_LINES)
+        else if (player->automapflags & AF_LINES)
         {
             player->automapflags &= ~AF_LINES;
         }
@@ -93,12 +94,13 @@ void AM_Control (player_t *player) // 800004F4
         player->automapy = player->mo->y;
     }
 
-    if(!(player->automapflags & (AF_LINES|AF_SUBSEC)))
+    if (!(player->automapflags & (AF_LINES | AF_SUBSEC)))
+    {
         return;
-
-    /* update player flash */
+    }
+    // update player flash
     am_plycolor = (unsigned int)(am_plycolor + am_plyblink);
-    if(am_plycolor < 80 || (am_plycolor >= 255))
+    if ((am_plycolor < 80) || (am_plycolor >= 255))
     {
         am_plyblink = -am_plyblink;
     }
@@ -117,20 +119,21 @@ void AM_Control (player_t *player) // 800004F4
 
         M_ClearBox(am_box);
 
-        block[2] = block[4] = (bmapwidth << 23 ) + bmaporgx;
+        block[2] = block[4] = (bmapwidth << 23) + bmaporgx;
         block[1] = block[3] = (bmapheight << 23) + bmaporgy;
         block[0] = block[6] = bmaporgx;
         block[5] = block[7] = bmaporgy;
 
         angle = (ANG90 - player->mo->angle) >> ANGLETOFINESHIFT;
 
-        fs = finesine(angle);
-        fc = finecosine(angle);
+        fsc = fine_sincos(angle);
+        fs = (fsc >> 16)<<1;
+        fc = ((fsc << 16) >> 16)<<1;
 
-        for(i = 0; i < 8; i+=2)
+        for (i = 0; i < 8; i += 2)
         {
-            x = (block[i]   - player->automapx) >> FRACBITS;
-            y = (block[i+1] - player->automapy) >> FRACBITS;
+            x = (block[i] - player->automapx) >> FRACBITS;
+            y = (block[i + 1] - player->automapy) >> FRACBITS;
 
             x1 = (x * fc);
             y1 = (y * fs);
@@ -145,28 +148,29 @@ void AM_Control (player_t *player) // 800004F4
     }
 
     if (!(player->automapflags & AF_FOLLOW))
+    {
         return;
-
+    }
     scale = player->automapscale << 15;
     scale = (scale / 1500) << 8;
 
-    /* Analyze analog stick movement (left / right) */
-	sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
+    // Analyze analog stick movement (left / right)
+    sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
-    if(sensitivity >= MAXSENSIVITY || sensitivity <= -MAXSENSIVITY)
+    if (sensitivity >= MAXSENSIVITY || sensitivity <= -MAXSENSIVITY)
     {
         player->automapx += (sensitivity * scale) / 80;
     }
 
-    /* Analyze analog stick movement (up / down) */
+    // Analyze analog stick movement (up / down)
     sensitivity = (int)((buttons) << 24) >> 24;
 
-    if(sensitivity >= MAXSENSIVITY || sensitivity <= -MAXSENSIVITY)
+    if (sensitivity >= MAXSENSIVITY || sensitivity <= -MAXSENSIVITY)
     {
         player->automapy += (sensitivity * scale) / 80;
     }
 
-    /* X movement */
+    // X movement
     if (player->automapx > am_box[BOXRIGHT])
     {
         player->automapx = am_box[BOXRIGHT];
@@ -176,7 +180,7 @@ void AM_Control (player_t *player) // 800004F4
         player->automapx = am_box[BOXLEFT];
     }
 
-    /* Y movement */
+    // Y movement
     if (player->automapy > am_box[BOXTOP])
     {
         player->automapy = am_box[BOXTOP];
@@ -186,22 +190,26 @@ void AM_Control (player_t *player) // 800004F4
         player->automapy = am_box[BOXBOTTOM];
     }
 
-    /* Zoom scale in */
+    // Zoom scale in
     if (buttons & PAD_L_TRIG)
     {
         player->automapscale -= 32;
 
         if (player->automapscale < MINSCALE)
+        {
             player->automapscale = MINSCALE;
+        }
     }
 
-    /* Zoom scale out */
+    // Zoom scale out
     if (buttons & PAD_R_TRIG)
     {
         player->automapscale += 32;
 
         if (player->automapscale > MAXSCALE)
+        {
             player->automapscale = MAXSCALE;
+        }
     }
 
     ticbuttons[0] &= ~(cbuttons->BT_LEFT | cbuttons->BT_RIGHT |
@@ -209,42 +217,39 @@ void AM_Control (player_t *player) // 800004F4
                        PAD_L_TRIG | PAD_R_TRIG | 0xffff);
 }
 
-/*
-==================
-=
-= AM_Drawer
-=
-= Draws the current frame to workingscreen
-==================
-*/
-
-void AM_Drawer (void) // 800009AC
+//
+// AM_Drawer
+//
+// Draws the current frame to workingscreen
+//
+void AM_Drawer(void)
 {
-	player_t	*p;
-	mobj_t		*mo;
-	mobj_t		*next;
-	fixed_t		xpos, ypos;
-	fixed_t		ox, oy;
-	fixed_t     c;
-	fixed_t     s;
-	angle_t     angle;
-	int			color;
-	int			scale;
-	int         artflag;
-	char        map_name[48];
-	char		killcount[20]; // [Immorpher] Automap kill count
-	char		itemcount[20]; // [Immorpher] Automap item count
-	char		secretcount[20]; // [Immorpher] Automap secret count
+    player_t *p;
+    mobj_t *mo;
+    mobj_t *next;
+    fixed_t xpos, ypos;
+    fixed_t ox, oy;
+    fixed_t c;
+    fixed_t s;
+    fixed_t sc;
+    angle_t angle;
+    int color;
+    int scale;
+    int artflag;
+    char map_name[48];
+    char killcount[20]; // [Immorpher] Automap kill count
+    char itemcount[20]; // [Immorpher] Automap item count
+    char secretcount[20]; // [Immorpher] Automap secret count
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_FILL);
-    gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
+    gDPSetRenderMode(GFX1++, G_RM_NOOP, G_RM_NOOP2);
 
     gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
 
-    /* Fill borders with black */
-    gDPSetFillColor(GFX1++, GPACK_RGBA5551(0,0,0,0) << 16 | GPACK_RGBA5551(0,0,0,0));
-    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+    // Fill borders with black
+    gDPSetFillColor(GFX1++, COLOR_BLACK);
+    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
     gDPSetRenderMode(GFX1++, G_RM_OPA_CI, G_RM_AA_OPA_SURF2);
 
     p = &players[0];
@@ -264,16 +269,20 @@ void AM_Drawer (void) // 800009AC
         angle = (p->mo->angle + ANG270) >> ANGLETOFINESHIFT;
         ox = (p->automapx - xpos) >> 16;
         oy = (p->automapy - ypos) >> 16;
-        xpos += ((ox * finecosine(angle)) - (oy * finesine(angle)));
-        ypos += ((ox * finesine(angle)));
+        sc = fine_sincos(angle);
+        s = (sc >> 16)<<1;
+        c = ((sc << 16)>>16)<<1;
+        xpos += ((ox * c) - (oy * s));
+        ypos += ((ox * s));
     }
 
     angle = p->mo->angle >> ANGLETOFINESHIFT;
 
-    s = finesine(angle);
-    c = finecosine(angle);
+    sc = fine_sincos(angle);
+    s = (sc >> 16)<<1;
+    c = ((sc << 16)>>16)<<1;
 
-    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW| G_MTX_LOAD | G_MTX_NOPUSH);
+    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
     MTX1->m[0][0] = 0x10000;
     MTX1->m[0][1] = 0;
     MTX1->m[0][2] = 0;
@@ -290,9 +299,9 @@ void AM_Drawer (void) // 800009AC
     MTX1->m[3][1] = 0;
     MTX1->m[3][2] = 0;
     MTX1->m[3][3] = 0;
-    MTX1+=1;
+    MTX1 += 1;
 
-    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW| G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     MTX1->m[0][0] = (s & 0xffff0000);
     MTX1->m[0][1] = ((-c) & 0xffff0000);
     MTX1->m[0][2] = 1;
@@ -302,23 +311,23 @@ void AM_Drawer (void) // 800009AC
     MTX1->m[1][2] = 0;
     MTX1->m[1][3] = 1;
     MTX1->m[2][0] = ((s << 16) & 0xffff0000);
-    MTX1->m[2][1] = (((-c)<<16) & 0xffff0000);
+    MTX1->m[2][1] = (((-c) << 16) & 0xffff0000);
     MTX1->m[2][2] = 0;
     MTX1->m[2][3] = 0;
     MTX1->m[3][0] = ((c << 16) & 0xffff0000);
     MTX1->m[3][1] = ((s << 16) & 0xffff0000);
     MTX1->m[3][2] = 0;
     MTX1->m[3][3] = 0;
-    MTX1+=1;
+    MTX1 += 1;
 
-    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW| G_MTX_MUL | G_MTX_NOPUSH);
+    gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
     MTX1->m[0][0] = 0x10000;
     MTX1->m[0][1] = 0;
     MTX1->m[0][2] = 1;
     MTX1->m[0][3] = 0;
     MTX1->m[1][0] = 0;
     MTX1->m[1][1] = 0x10000;
-    MTX1->m[1][2] = ((-xpos) & 0xffff0000) | (((-scale) >> 16) &0xffff);
+    MTX1->m[1][2] = ((-xpos) & 0xffff0000) | (((-scale) >> 16) & 0xffff);
     MTX1->m[1][3] = (ypos & 0xffff0000) | 1;
     MTX1->m[2][0] = 0;
     MTX1->m[2][1] = 0;
@@ -326,9 +335,9 @@ void AM_Drawer (void) // 800009AC
     MTX1->m[2][3] = 0;
     MTX1->m[3][0] = 0;
     MTX1->m[3][1] = 0;
-    MTX1->m[3][2] = (((-xpos) << 16) & 0xffff0000) | ((-scale) &0xffff);
+    MTX1->m[3][2] = (((-xpos) << 16) & 0xffff0000) | ((-scale) & 0xffff);
     MTX1->m[3][3] = ((ypos << 16) & 0xffff0000);
-    MTX1+=1;
+    MTX1 += 1;
 
     if (p->automapflags & AF_LINES)
     {
@@ -342,20 +351,20 @@ void AM_Drawer (void) // 800009AC
     }
 
     /* SHOW ALL MAP THINGS (CHEAT) */
-	if (p->cheats & CF_ALLMAP)
-	{
-		for (mo = mobjhead.next; mo != &mobjhead; mo = next)
-		{
-		    I_CheckGFX();
-			next = mo->next;
+    if (p->cheats & CF_ALLMAP)
+    {
+        for (mo = mobjhead.next; mo != &mobjhead; mo = next)
+        {
+            I_CheckGFX();
+            next = mo->next;
 
-			if (mo == p->mo)
-                continue;  /* Ignore player */
+            if (mo == p->mo)
+                continue; /* Ignore player */
 
-            if (mo->flags & (MF_NOSECTOR|MF_RENDERLASER))
+            if (mo->flags & (MF_NOSECTOR | MF_RENDERLASER))
                 continue;
 
-            if (mo->flags & (MF_SHOOTABLE|MF_MISSILE))
+            if (mo->flags & (MF_SHOOTABLE | MF_MISSILE))
                 color = COLOR_RED;
             else
                 color = COLOR_AQUA;
@@ -372,10 +381,10 @@ void AM_Drawer (void) // 800009AC
             {
                 gSP1Triangle(GFX1++, 0, 1, 2, 0 /*flag*/);
             }
-		}
-	}
+        }
+    }
 
-	/* SHOW PLAYERS */
+    /* SHOW PLAYERS */
     AM_DrawThings(p->mo->x, p->mo->y, p->mo->angle, am_plycolor << 16 | 0xff);
 
     if (p->automapflags & AF_LINES)
@@ -385,39 +394,38 @@ void AM_Drawer (void) // 800009AC
         gSPLine3D(GFX1++, 2, 0, 0 /*flag*/);
 
         gDPPipeSync(GFX1++);
-        gDPSetScissor(GFX1++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WD, SCREEN_HT);
+        gDPSetScissor(GFX1++, G_SC_NON_INTERLACE, 32, 32, SCREEN_WD-32, SCREEN_HT-32);
     }
     else
     {
         gSP1Triangle(GFX1++, 0, 1, 2, 0 /*flag*/);
     }
 
-
     if (enable_messages)
     {
         if (p->messagetic <= 0)
         {
             sprintf(map_name, "LEVEL %d: %s", gamemap, MapInfo[gamemap].name);
-            ST_Message(2+HUDmargin,HUDmargin, map_name, 196 | 0xffffff00);
+            ST_Message(2 + HUDmargin, HUDmargin, map_name, 196 | 0xffffff00);
         }
         else
         {
-            ST_Message(2+HUDmargin,HUDmargin, p->message, 196 | p->messagecolor);
+            ST_Message(2 + HUDmargin, HUDmargin, p->message, 196 | p->messagecolor);
         }
     }
-	
 
-	// [Immorpher] kill count
-	if(MapStats) {
-		sprintf(killcount, "KILLS: %d/%d", players[0].killcount, totalkills);
-		ST_Message(2+HUDmargin, 212-HUDmargin, killcount, 196 | 0xffffff00);
-		sprintf(itemcount, "ITEMS: %d/%d", players[0].itemcount, totalitems);
-		ST_Message(2+HUDmargin, 222-HUDmargin, itemcount, 196| 0xffffff00);
-		sprintf(secretcount, "SECRETS: %d/%d", players[0].secretcount, totalsecret);
-		ST_Message(2+HUDmargin, 232-HUDmargin, secretcount, 196 | 0xffffff00);
-	}
+    // [Immorpher] kill count
+    if (MapStats)
+    {
+        sprintf(killcount, "KILLS: %d/%d", players[0].killcount, totalkills);
+        ST_Message(2 + HUDmargin, 212 - HUDmargin, killcount, 196 | 0xffffff00);
+        sprintf(itemcount, "ITEMS: %d/%d", players[0].itemcount, totalitems);
+        ST_Message(2 + HUDmargin, 222 - HUDmargin, itemcount, 196 | 0xffffff00);
+        sprintf(secretcount, "SECRETS: %d/%d", players[0].secretcount, totalsecret);
+        ST_Message(2 + HUDmargin, 232 - HUDmargin, secretcount, 196 | 0xffffff00);
+    }
 
-    xpos = 297-HUDmargin;
+    xpos = 297 - HUDmargin;
     artflag = 4;
     do
     {
@@ -425,15 +433,15 @@ void AM_Drawer (void) // 800009AC
         {
             if (artflag == 4)
             {
-                BufferedDrawSprite(MT_ITEM_ARTIFACT3, &states[S_559], 0, 0xffffff80, xpos, 266-HUDmargin);
+                BufferedDrawSprite(MT_ITEM_ARTIFACT3, &states[S_559], 0, 0xffffff80, xpos, 266 - HUDmargin);
             }
             else if (artflag == 2)
             {
-                BufferedDrawSprite(MT_ITEM_ARTIFACT2, &states[S_551], 0, 0xffffff80, xpos, 266-HUDmargin);
+                BufferedDrawSprite(MT_ITEM_ARTIFACT2, &states[S_551], 0, 0xffffff80, xpos, 266 - HUDmargin);
             }
             else if (artflag == 1)
             {
-                BufferedDrawSprite(MT_ITEM_ARTIFACT1, &states[S_543], 0, 0xffffff80, xpos, 266-HUDmargin);
+                BufferedDrawSprite(MT_ITEM_ARTIFACT1, &states[S_543], 0, 0xffffff80, xpos, 266 - HUDmargin);
             }
 
             xpos -= 40;
@@ -441,7 +449,6 @@ void AM_Drawer (void) // 800009AC
         artflag >>= 1;
     } while (artflag != 0);
 }
-
 
 /*
 ==================
@@ -458,23 +465,26 @@ void AM_DrawSubsectors(player_t *player) // 800012A0
     leaf_t *lf;
     int i;
 
+    vid_task->t.ucode = (u64 *)gspL3DEX2_fifoTextStart;
+    vid_task->t.ucode_data = (u64 *)gspL3DEX2_fifoDataStart;
+
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_1CYCLE);
     gDPSetTextureLUT(GFX1++, G_TT_RGBA16);
     gDPSetTexturePersp(GFX1++, G_TP_PERSP);
-    gDPSetRenderMode(GFX1++, G_RM_OPA_SURF,G_RM_OPA_SURF2);
+    gDPSetRenderMode(GFX1++, G_RM_OPA_SURF, G_RM_OPA_SURF2);
     gDPSetCombineMode(GFX1++, G_CC_D64COMB01, G_CC_D64COMB01);
 
     globallump = -1;
 
-	sub = subsectors;
-	for (i=0 ; i<numsubsectors ; i++, sub++)
-	{
-        if((sub->drawindex) || (player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP))
+    sub = subsectors;
+    for (i = 0; i < numsubsectors; i++, sub++)
+    {
+        if ((sub->drawindex) || (player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP))
         {
             sec = sub->sector;
 
-            if((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1))
+            if ((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1))
                 continue;
 
             I_CheckGFX();
@@ -485,7 +495,7 @@ void AM_DrawSubsectors(player_t *player) // 800012A0
                           0, 0,
                           lights[sec->colors[1]].rgba);
         }
-	}
+    }
 }
 
 /*
@@ -501,8 +511,8 @@ void AM_DrawLine(player_t *player) // 800014C8
     line_t *l;
     int i, color;
 
-    vid_task->t.ucode = (u64 *) gspL3DEX2_fifoTextStart;
-    vid_task->t.ucode_data = (u64 *) gspL3DEX2_fifoDataStart;
+    vid_task->t.ucode = (u64 *)gspL3DEX2_fifoTextStart;
+    vid_task->t.ucode_data = (u64 *)gspL3DEX2_fifoDataStart;
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_1CYCLE);
@@ -510,18 +520,18 @@ void AM_DrawLine(player_t *player) // 800014C8
     gDPSetTextureLUT(GFX1++, G_TT_RGBA16);
     gDPSetTexturePersp(GFX1++, G_TP_PERSP);
 
-    R_RenderFilter();    // [GEC and Immorpher] New filter options
+    R_RenderFilter(); // [GEC and Immorpher] New filter options
 
-    gDPSetRenderMode(GFX1++,G_RM_AA_XLU_LINE,G_RM_AA_XLU_LINE2);
+    gDPSetRenderMode(GFX1++, G_RM_AA_XLU_LINE, G_RM_AA_XLU_LINE2);
     gDPSetCombineMode(GFX1++, G_CC_D64COMB02, G_CC_D64COMB02);
 
     l = lines;
     for (i = 0; i < numlines; i++, l++)
     {
-        if(l->flags & ML_DONTDRAW)
+        if (l->flags & ML_DONTDRAW)
             continue;
 
-        if(((l->flags & ML_MAPPED) || player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP))
+        if (((l->flags & ML_MAPPED) || player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP))
         {
             I_CheckGFX();
 
@@ -530,11 +540,11 @@ void AM_DrawLine(player_t *player) // 800014C8
             /* */
             color = COLOR_BROWN;
 
-            if((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP)) && !(l->flags & ML_MAPPED))
+            if ((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP)) && !(l->flags & ML_MAPPED))
                 color = COLOR_GREY;
             else if (l->flags & ML_SECRET)
                 color = COLOR_RED;
-            else if(l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER))
+            else if (l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER))
                 color = COLOR_YELLOW;
             else if (!(l->flags & ML_TWOSIDED)) /* ONE-SIDED LINE */
                 color = COLOR_RED;
@@ -543,11 +553,11 @@ void AM_DrawLine(player_t *player) // 800014C8
             gSPLine3D(GFX1++, 0, 1, 0);
 
             /* x, z */
-            VTX1[0].v.ob[0] =  l->v1->x >> FRACBITS;
+            VTX1[0].v.ob[0] = l->v1->x >> FRACBITS;
             VTX1[0].v.ob[2] = -l->v1->y >> FRACBITS;
 
             /* x, z */
-            VTX1[1].v.ob[0] =  l->v2->x >> FRACBITS;
+            VTX1[1].v.ob[0] = l->v2->x >> FRACBITS;
             VTX1[1].v.ob[2] = -l->v2->y >> FRACBITS;
 
             /* y */
@@ -573,20 +583,31 @@ void AM_DrawLine(player_t *player) // 800014C8
 void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color) // 80001834
 {
     angle_t ang;
+    fixed_t sc,s,c;
 
     gSPVertex(GFX1++, (VTX1), 3, 0);
 
     ang = (angle) >> ANGLETOFINESHIFT;
-    VTX1[0].v.ob[0] = ((finecosine(ang) << 5) + x) >> FRACBITS;
-    VTX1[0].v.ob[2] =-((finesine(ang) << 5) + y) >> FRACBITS;
+    sc = fine_sincos(ang);
+    s = (sc >> 16)<<1;
+    c = ((sc << 16)>>16)<<1;
+
+    VTX1[0].v.ob[0] = ((c << 5) + x) >> FRACBITS;
+    VTX1[0].v.ob[2] = -((s << 5) + y) >> FRACBITS;
 
     ang = (angle + 0xA0000000) >> ANGLETOFINESHIFT;
-    VTX1[1].v.ob[0] = ((finecosine(ang) << 5) + x) >> FRACBITS;
-    VTX1[1].v.ob[2] =-((finesine(ang) << 5) + y) >> FRACBITS;
+    sc = fine_sincos(ang);
+    s = (sc >> 16)<<1;
+    c = ((sc << 16)>>16)<<1;
+    VTX1[1].v.ob[0] = ((c << 5) + x) >> FRACBITS;
+    VTX1[1].v.ob[2] = -((s << 5) + y) >> FRACBITS;
 
     ang = (angle + 0x60000000) >> ANGLETOFINESHIFT;
-    VTX1[2].v.ob[0] = ((finecosine(ang) << 5) + x) >> FRACBITS;
-    VTX1[2].v.ob[2] =-((finesine(ang) << 5) + y) >> FRACBITS;
+    sc = fine_sincos(ang);
+    s = (sc >> 16)<<1;
+    c = ((sc << 16)>>16)<<1;
+    VTX1[2].v.ob[0] = ((c << 5) + x) >> FRACBITS;
+    VTX1[2].v.ob[2] = -((s << 5) + y) >> FRACBITS;
 
     VTX1[0].v.ob[1] = VTX1[1].v.ob[1] = VTX1[2].v.ob[1] = 0;
 

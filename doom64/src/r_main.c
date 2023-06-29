@@ -147,6 +147,8 @@ void R_RenderPlayerView(void) // 80023448
 	fixed_t Fnear, FnearA, FnearB;
 	fixed_t sin, cos;
 
+	    u32 start_fs_count = osGetCount();
+
 	viewplayer = &players[0];
 
     if (cameratarget == players[0].mo)
@@ -206,6 +208,7 @@ void R_RenderPlayerView(void) // 80023448
     sin = finesine(pitch);
     cos = finecosine(pitch);
 
+//memset(MTX1, 0, sizeof(Mtx));
     gSPMatrix(GFX1++, OS_K0_TO_PHYSICAL(MTX1), G_MTX_MODELVIEW| G_MTX_LOAD | G_MTX_NOPUSH);
     MTX1->m[0][0] = 0x10000;
     MTX1->m[0][1] = 0;
@@ -265,6 +268,9 @@ void R_RenderPlayerView(void) // 80023448
     MTX1->m[3][2] = (((-viewx) << 16) & 0xffff0000) | ((-viewz) & 0xffff);
     MTX1->m[3][3] = ((viewy << 16) & 0xffff0000);
     MTX1++;
+
+            last_fs_count = ((osGetCount() - start_fs_count) + last_fs_count) / 2;
+
 
     // Phase 3
     R_RenderAll();
@@ -359,7 +365,7 @@ static int SlopeDiv(unsigned num, unsigned den) // 80023D10
 	return ans <= SLOPERANGE ? ans : SLOPERANGE;
 }
 
-angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2) // 80023D60
+angle_t __attribute__((optimize("-Os"))) R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2) // 80023D60
 {
 	int		x;
 	int		y;

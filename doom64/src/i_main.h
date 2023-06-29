@@ -1,5 +1,5 @@
-#define	SCREEN_HT	240
-#define	SCREEN_WD	320
+extern int SCREEN_WD;
+extern int SCREEN_HT;
 
 /* this stack size is in bytes, and is a lot larger
  * than this program needs.
@@ -8,4 +8,4 @@
 
 /* for mem_heap and z_zone
  */
-#define MEM_HEAP_SIZE (0x640000) 
+#define MEM_HEAP_SIZE (0x590000) 

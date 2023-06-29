@@ -34,8 +34,6 @@ extern u64 mem_heap[MEM_HEAP_SIZE / sizeof(u64)]; // 800BA2F0
 ========================
 */
 
-#include "graph.h"
-
 void Z_Init (void) // 8002C8F0
 {
 	byte	*mem;

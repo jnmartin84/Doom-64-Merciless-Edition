@@ -4,6 +4,9 @@
 #include "r_local.h"
 #include "st_main.h"
 
+extern int SCREEN_WD;
+extern int SCREEN_HT;
+
 extern void P_RefreshBrightness(void);
 extern void P_RefreshVideo(void);
 
@@ -340,7 +343,7 @@ boolean enable_messages = true; // 8005A7B8
 int HUDopacity = 255;			// [Immorpher] HUD opacity
 int SfxVolume = 100;             // 8005A7C0
 int MusVolume = 80;             // 8005A7C4
-int brightness = 125;             // 8005A7C8
+int brightness = 200;             // 8005A7C8
 int M_SENSITIVITY = 0;          // 8005A7CC
 boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
@@ -350,7 +353,7 @@ boolean interlacing = false; // [Immorpher] Interlacing
 boolean DitherFilter = false; // [Immorpher] Dither filter
 int ColorDither = 0; // [Immorpher] Color dithering options (Off, Square, Bayer, Noise)
 int FlashBrightness = 32; // [Immorpher] Strobe brightness adjustment, will need to change to float
-boolean Autorun = true; // [Immorpher] New autorun option!
+boolean Autorun = false; // [Immorpher] New autorun option!
 boolean runintroduction = false; // [Immorpher] New introduction sequence!
 boolean StoryText = false; // [Immorpher] Skip story cut scenes?
 boolean MapStats = false; // [Immorpher] Enable map statistics for automap?
@@ -2022,8 +2025,20 @@ int M_MenuTicker(void) // 80007E0C
                     if (truebuttons)
                     {
                         S_StartSound(NULL, sfx_switch2);
-                        players[0].cheats ^= CF_GAMMA;
-                        gobalcheats ^= CF_GAMMA;
+//                        players[0].cheats ^= CF_GAMMA;
+//                        gobalcheats ^= CF_GAMMA;
+//D_memset(cfb, 0, ((SCREEN_WD*SCREEN_HT)*sizeof(u16))*2);
+
+if(SCREEN_WD == 640)
+{
+    SCREEN_WD = 320;
+    SCREEN_HT = 240;
+}
+else
+{
+    SCREEN_WD = 640;
+    SCREEN_HT = 480;
+}
 						P_RefreshVideo();
                         return ga_nothing;
                     }
@@ -2575,13 +2590,21 @@ void M_DrawBackground(int x, int y, int color, char *name) // 80009A68
         gDPSetTileSize(GFX1++, G_TX_RENDERTILE,
                        (0 << 2), (t << 2),
                        ((width - 1) << 2), (((t + yh) - 1) << 2));
-
+/*
         gSPTextureRectangle(GFX1++,
             (x << 2), (y << 2),
             ((width + x) << 2), ((yh + y) << 2),
             G_TX_RENDERTILE,
             (0 << 5), (t << 5),
             (1 << 10), (1 << 10));
+*/
+        // diff for hi-res pr
+        gSPTextureRectangle(GFX1++,
+            (x << 2)*(SCREEN_WD/320), (y << 2)*(SCREEN_WD/320),
+            ((width + x) << 2)*(SCREEN_WD/320), ((yh + y) << 2)*(SCREEN_WD/320),
+            G_TX_RENDERTILE,
+            (0 << 5), (t << 5),
+            (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
 
         height -= yh;
         t += yh;
@@ -2610,7 +2633,10 @@ void M_DrawOverlay(int x, int y, int w, int h, int color) // 80009F58
 
     gDPSetPrimColorD64(GFX1++, 0, 0, color);
 
-    gDPFillRectangle(GFX1++, x, y, w, h);
+//    gDPFillRectangle(GFX1++, x, y, w, h);
+    // diff for hi-res pr
+    gDPFillRectangle(GFX1++, x*(SCREEN_WD/320), y*(SCREEN_HT/240), w*(SCREEN_WD/320), h*(SCREEN_HT/240));
+
     globallump = -1;
 }
 

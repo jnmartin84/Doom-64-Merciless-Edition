@@ -4,7 +4,6 @@
 
 #include "wessseq.h"
 
-#include "graph.h"
 #ifndef NOUSEWESSCODE
 extern void (**CmdFuncArr[10])(track_status *);
 extern void(*DrvFunctions[36])(track_status *);
@@ -91,7 +90,8 @@ void(*DrvFunctions[36])(track_status *) =
 	Eng_NullEvent       //0x23
 };
 
-unsigned char CmdLength[36] = { // 8005D9F0
+// guess what, alignment really matters
+unsigned char __attribute__((aligned(16))) CmdLength[36] = { // 8005D9F0
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
 0x02, 0x03, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 0x02, 0x03, 0x02, 0x04, 0x05, 0x05, 0x02, 0x02,
@@ -99,7 +99,8 @@ unsigned char CmdLength[36] = { // 8005D9F0
 0x03, 0x01, 0x01, 0x01
 };
 
-unsigned char CmdSort[44] = { // 8005DA14
+// guess what, alignment really matters
+unsigned char __attribute__((aligned(16))) CmdSort[44] = { // 8005DA14
 0x00, 0x01, 0x02, 0x03, 0x04, 0x07, 0x06, 0x16,
 0x17, 0x18, 0x15, 0x1A, 0x1E, 0x19, 0x1B, 0x1D,
 0x1C, 0x1F, 0x05, 0x0F, 0x08, 0x09, 0x12, 0x11,
@@ -239,13 +240,13 @@ void Eng_DriverEntry3 (track_status *ptk_stat) // 80036114
     //PRINTF_D2(WHITE,0,10,"Eng_DriverEntry3");
 }
 
-void Eng_TrkOff (track_status *ptk_stat) // 8003611C
-{
 	static sequence_status	*lpseq;	//800B6638
 	static char				*lpdest;//800B663C
 	static unsigned long	lj;		//800B6640
 
-	//PRINTF_D2(WHITE,0,10,"Eng_TrkOff");
+void Eng_TrkOff (track_status *ptk_stat) // 8003611C
+{
+	//I_Error("ptk_stat %08x", ptk_stat);
 
 	lpseq = (pmsbase->pseqstattbl + ptk_stat->seq_owner);
 

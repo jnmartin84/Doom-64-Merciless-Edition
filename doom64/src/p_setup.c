@@ -3,9 +3,6 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-// text for debug
-#include "graph.h"
-
 extern void P_SpawnPlayer(/*mapthing_t *mthing*/);
 
 int			numvertexes;	//80077E44|uGp00000a34

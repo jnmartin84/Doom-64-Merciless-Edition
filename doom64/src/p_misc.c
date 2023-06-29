@@ -656,10 +656,33 @@ void P_SetMovingCamera(line_t *line) // 8000F2F8
         return;
     }
 }
+
+extern int SCREEN_WD;
+
 void P_RefreshVideo(void) // [Immorpher] video refresh
 {
 	// default to silence compiler
 	OSViMode *ViMode = OS_VI_NTSC_LPN1;
+ osViBlack(1);
+
+    // diff for hi-res pr
+if (SCREEN_WD == 640)
+{
+    if(osTvType == OS_TV_PAL)
+    {
+        ViMode = &osViModeTable[OS_VI_PAL_HPN1];
+    }
+    else if(osTvType == OS_TV_NTSC)
+    {
+        ViMode = &osViModeTable[OS_VI_NTSC_HPN1];
+    }
+    else if(osTvType == OS_TV_MPAL)
+    {
+        ViMode = &osViModeTable[OS_VI_MPAL_HPN1];
+    }
+}
+else 
+{
 
 	if(antialiasing==true && interlacing==true)
 	{
@@ -721,7 +744,7 @@ void P_RefreshVideo(void) // [Immorpher] video refresh
 			ViMode = &osViModeTable[OS_VI_MPAL_LPN1];
 		}
 	}
-	
+}
     osViSetMode(ViMode);
 	
 	if(DitherFilter == true) // [Immorpher] Dither filter option
@@ -741,6 +764,7 @@ void P_RefreshVideo(void) // [Immorpher] video refresh
 			osViSetSpecialFeatures(OS_VI_GAMMA_OFF|OS_VI_GAMMA_DITHER_OFF|OS_VI_DIVOT_OFF|OS_VI_DITHER_FILTER_OFF);	
 		}
 	}
+osViBlack(0);
 
 }
 

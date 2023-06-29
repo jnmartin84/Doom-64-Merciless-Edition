@@ -17,9 +17,6 @@
 #include "wesstrak.h"
 #include "wesshand.h"
 
-
-#include "graph.h"
-
 #ifndef NOUSEWESSCODE
 
 void wess_set_tweaks(WessTweakAttr *attr) // 8002F180

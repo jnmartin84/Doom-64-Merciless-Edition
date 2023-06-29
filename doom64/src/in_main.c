@@ -268,7 +268,7 @@ int IN_Ticker(void) // 80004E24
 void IN_Drawer(void) // 80005164
 {
 	int i, c;
-	char password[32];
+	char  __attribute__((aligned(16))) password[32];
 	char *pbuff;
 
 	I_ClearFrame();

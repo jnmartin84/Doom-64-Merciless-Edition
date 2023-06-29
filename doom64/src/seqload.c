@@ -11,8 +11,6 @@
 
 #include "funqueue.h"
 
-#include "graph.h"//debug
-
 #ifndef NOUSEWESSCODE
 
 module_header	sfile_hdr;				//800b6a60

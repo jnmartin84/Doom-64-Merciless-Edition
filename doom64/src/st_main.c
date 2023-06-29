@@ -215,7 +215,7 @@ void ST_Ticker (void) // 80029C88
 ====================
 */
 
-static char buffer[16][256];
+static char  __attribute__((aligned(16))) buffer[16][256];
 static int debugX, debugY;//80077E5C|uGp00000a4c, 80077E68|uGp00000a58
 static int debugcnt = 0;
 static int debug = 0;
@@ -227,6 +227,11 @@ extern u32 last_bsp_count;
 extern u32 last_phase3_count;
 extern u32 last_iter_count;
 
+extern u32 last_dma_count;
+extern u32 last_dec64_count;
+extern double dec_ratio;
+
+u32 last_fs_count;
 
 void ST_Drawer (void) // 80029DC0
 {
@@ -335,20 +340,22 @@ void ST_Drawer (void) // 80029DC0
         /* */
         /* Health */
         /* */
-        gSPTextureRectangle(GFX1++, ((2+HUDmargin) << 2), ((218 - HUDmargin) << 2),
-                                    ((42 + HUDmargin) << 2), ((224 - HUDmargin)  << 2),
+        // diff for hirez
+        gSPTextureRectangle(GFX1++, (29 << 2)*(SCREEN_WD/320), (203 << 2)*(SCREEN_WD/320),
+                                    (69 << 2)*(SCREEN_WD/320), (209 << 2)*(SCREEN_WD/320),
                                     G_TX_RENDERTILE,
                                     (0 << 5), (0 << 5),
-                                    (1 << 10), (1 << 10));
+                                    (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
 
         /* */
         /* Armor */
         /* */
-        gSPTextureRectangle(GFX1++, ((280-HUDmargin) << 2), ((218 - HUDmargin) << 2),
-                                    ((316-HUDmargin) << 2), ((224 - HUDmargin) << 2),
+                // diff for high res pr
+        gSPTextureRectangle(GFX1++, (253 << 2)*(SCREEN_WD/320), (203 << 2)*(SCREEN_WD/320),
+                                    (289 << 2)*(SCREEN_WD/320), (209 << 2)*(SCREEN_WD/320),
                                     G_TX_RENDERTILE,
                                     (40 << 5), (0 << 5),
-                                    (1 << 10), (1 << 10));
+                                    (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
 
         /* */
         /* White color */
@@ -365,11 +372,13 @@ void ST_Drawer (void) // 80029DC0
                 /* */
                 /* Draw Keys Graphics */
                 /* */
-                gSPTextureRectangle(GFX1++, card_x[ind], ((230-HUDmargin) << 2),
-                                            card_x[ind]+(9 << 2), ((240-HUDmargin) << 2),
+                                 // diff for high res pr
+                gSPTextureRectangle(GFX1++, card_x[ind]*(SCREEN_WD/320), (216 << 2)*(SCREEN_WD/320),
+                                            (card_x[ind]*(SCREEN_WD/320))+(9 << 2)*(SCREEN_WD/320), (226 << 2)*(SCREEN_WD/320),
                                             G_TX_RENDERTILE,
                                             ((ind * 9) << 5), (6 << 5),
-                                            (1 << 10), (1 << 10));
+                                            (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
+
             }
         }
 
@@ -387,8 +396,10 @@ void ST_Drawer (void) // 80029DC0
             if (ammo < 0)
                 ammo = 0;
 			
-            ammo = OS_CYCLES_TO_NSEC(last_iter_count) / 1000;//Z_FreeMemory(mainzone);
-
+            ammo = //(int)(dec_ratio * 1000);
+            OS_CYCLES_TO_NSEC(last_iter_count) / 1000;
+            //Z_FreeMemory(mainzone);
+//last_fs_count;
 			if (!ColoredHUD) { // skip the hud coloring
 				ST_DrawNumber(160, 227-HUDmargin, ammo, 0, PACKRGBA(224,0,0,HUDopacity)); // 0xe0000080
 			} else if (weaponinfo[weapon].ammo == am_clip) { // [Immorpher] clip ammo
@@ -407,7 +418,7 @@ void ST_Drawer (void) // 80029DC0
         /* */
         
 		if (!ColoredHUD) { // skip the hud coloring
-			ST_DrawNumber(22+HUDmargin, 227-HUDmargin, /*player->health*/OS_CYCLES_TO_NSEC(last_bsp_count)/1000, 0, PACKRGBA(224,0,0,HUDopacity));
+			ST_DrawNumber(22+HUDmargin, 227-HUDmargin, /*player->health*/ OS_CYCLES_TO_NSEC(/*last_dma_count) */last_bsp_count) / 1000, 0, PACKRGBA(224,0,0,HUDopacity));
 		} else if (player->health <= 67) { // [Immorpher] colored hud
 			ST_DrawNumber(22+HUDmargin, 227-HUDmargin, player->health, 0, PACKRGBA(224-96*player->health/67,128*player->health/67,0,HUDopacity));
 		} else if (player->health <= 133) { // [Immorpher] colored hud
@@ -420,7 +431,7 @@ void ST_Drawer (void) // 80029DC0
         /* Armor */
         /* */
 		if (!ColoredHUD || player->armorpoints == 0) { // [Immorpher] No armor
-			ST_DrawNumber(298-HUDmargin, 227-HUDmargin, /*player->armorpoints*/OS_CYCLES_TO_NSEC(last_phase3_count)/1000, 0, PACKRGBA(224,0,0,HUDopacity)); // 0xe0000080
+			ST_DrawNumber(298-HUDmargin, 227-HUDmargin, /*player->armorpoints*/OS_CYCLES_TO_NSEC(/*last_dec64_count) */last_phase3_count) / 1000, 0, PACKRGBA(224,0,0,HUDopacity)); // 0xe0000080
 		} else if (player->armortype == 1) { // [Immorpher] Green armor
 			ST_DrawNumber(298-HUDmargin, 227-HUDmargin, player->armorpoints, 0, PACKRGBA(0,128,64,HUDopacity)); 
 		} else { // [Immorpher] Blue armor
@@ -513,12 +524,14 @@ void ST_Message(int x,int y,char *text,int color) // 8002A36C
 
                 s = ((c - '!') & ~32) * ST_FONTWHSIZE;
 
+                // diff for high res pr
                 gSPTextureRectangle(GFX1++,
-                                    (xpos << 2), (ypos << 2),
-                                    ((xpos + ST_FONTWHSIZE) << 2), ((ypos + ST_FONTWHSIZE) << 2),
+                                    (xpos << 2)*(SCREEN_WD/320), (ypos << 2)*(SCREEN_WD/320),
+                                    ((xpos + ST_FONTWHSIZE) << 2)*(SCREEN_WD/320), ((ypos + ST_FONTWHSIZE) << 2)*(SCREEN_WD/320),
                                     G_TX_RENDERTILE,
                                     (s << 5), (t << 5),
-                                    (1 << 10), (1 << 10));
+                                    (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
+
             }
             xpos += ST_FONTWHSIZE;
         }
@@ -862,12 +875,14 @@ void ST_DrawSymbol(int xpos, int ypos, int index, int color) // 8002ADEC
                  (symbol->x << 2), (symbol->y << 2),
                  ((symbol->x + symbol->w) << 2), ((symbol->y + symbol->h) << 2));
 
+    // diff for high res pr
     gSPTextureRectangle(GFX1++,
-                (xpos << 2), (ypos << 2),
-                ((xpos + symbol->w) << 2), ((ypos + symbol->h) << 2),
+                (xpos << 2)*(SCREEN_WD/320), (ypos << 2)*(SCREEN_WD/320),
+                ((xpos + symbol->w) << 2)*(SCREEN_WD/320), ((ypos + symbol->h) << 2)*(SCREEN_WD/320),
                 G_TX_RENDERTILE,
                 (symbol->x << 5), (symbol->y << 5),
-                (1 << 10), (1 << 10));
+                (1 << 10)/(SCREEN_WD/320), (1 << 10)/(SCREEN_WD/320));
+
 }
 
 #include "stdarg.h"

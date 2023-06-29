@@ -1,14 +1,11 @@
 # Code
-/doom64/*.o
-/doom64/*.out
+/doom64/build/*
 /doom64/Tools/dm64ex
 # Assets
-*.wad
-*.wsd
-*.wdd
-*.wmd
-
-*.n64
+/doom64/Data/*.o
+/doom64/Data/*.wad
+/doom64/Data/*.wsd
+/doom64/Data/*.wdd
+/doom64/Data/*.wmd
+# ROM
 *.z64
-
-!doom64/WESSLIB.o

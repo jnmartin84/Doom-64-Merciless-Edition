@@ -11,9 +11,6 @@
 
 #include "i_main.h"
 
-/* TEST DEBUG */
-#include "graph.h"
-
 /* WESS SYSTEM */
 #include "soundhw.h"
 #include "seqload.h"
@@ -24,7 +21,7 @@
 /* SYSTEM IO */
 /*-----------*/
 
-extern u16 cfb[2][SCREEN_WD*SCREEN_HT]; // 8036A000
+extern u16 cfb[2][640*480]; // 8036A000
 
 /*============================================================================= */
 
@@ -102,6 +99,66 @@ extern fixed_t finesine(int x);
 extern fixed_t finecosine(int x);
 extern angle_t tantoangle(int x);
 */
+static inline int D_abs(int x)
+{
+    int _s = x >> 31;
+    return (x ^ _s) - _s;
+}
+
+// TODO figure out why line of sight and intercept things break with this inlined
+static inline fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
+{
+    unsigned     aa, bb;
+    unsigned    c;
+    int         sign;
+
+    sign = a^b;
+
+//    if (a < 0)
+//        aa = -a;
+//    else
+//        aa = a;
+
+//    if (b < 0)
+//        bb = -b;
+//    else
+//        bb = b;
+
+    aa = (unsigned)D_abs(a);
+	bb = (unsigned)D_abs(b);
+
+    if ((unsigned)(aa >> 14) >= bb)
+    {
+        if (sign < 0)
+            c = MININT;
+        else
+            c = MAXINT;
+    }
+    else
+    {
+#if 0
+		fixed_t _c;
+//        c = (fixed_t) FixedDiv2(a, b);
+    asm volatile(
+    ".set noreorder\n\t"
+    ".set nomacro\n\t"
+    "dsll   %1, %1, 16\n\t"
+    "ddiv   $0, %1, %2\n\t"
+    "mflo   %0\n\t"
+    ".set macro\n\t"
+    ".set reorder"
+    : "=r" (_c)
+    : "r" (a), "r" (b)
+    );
+
+    c = (fixed_t)_c;//((s64)((s64) a << 16) / (s64)b);
+#endif
+    c = ((s64)((s64) a << 16) / (s64)b);
+    }
+
+    return c;
+}
+
 static inline fixed_t FixedDiv2(fixed_t a, fixed_t b)
 {
     fixed_t flo;
@@ -140,28 +197,188 @@ static inline fixed_t FixedMul(fixed_t a, fixed_t b)
     return (fixed_t) flo;
 }
 
-static inline fixed_t D_abs(fixed_t x)
+#if 0
+static inline fixed_t FixedDiv(fixed_t a, fixed_t b) // 80002BF8
 {
-    fixed_t _s = x >> 31;
-    return (x ^ _s) - _s;
-}
+    fixed_t     aa, bb;
+    unsigned    c;
+    int         sign;
 
+    sign = a^b;
+
+    if (a < 0)
+        aa = -a;
+    else
+        aa = a;
+
+    if (b < 0)
+        bb = -b;
+    else
+        bb = b;
+
+    if ((unsigned)(aa >> 14) >= bb)
+    {
+        if (sign < 0)
+            c = MININT;
+        else
+            c = MAXINT;
+    }
+    else
+    {
+    	c = (fixed_t)((s64) a << 16) / (s64)b;
+	}
+
+    return c;
+}
+#endif
+
+#if 0
 static inline fixed_t finesine(int x)
 {
-    x = x << 19;
+    x = x << 18;
     if ((x ^ (x << 1)) < 0)
         x = (1 << 31) - x;
     x = x >> 17;
     return x * (98304 - ((x * x) >> 11)) >> 13;
 }
+#endif
+#if 0
+static inline fixed_t finesine(int x)
+{
+    int c, x2, y;
+    static const int qN= 13, qA= 12, B=19900, C=3516;
 
-static inline fixed_t finecosine(int x) {
+    x = x << 2;
+
+    c= x<<(30-qN);              // Semi-circle info into carry.
+    x -= 1<<qN;                 // sine -> cosine calc
+
+    x= (x<<(31-qN));              // Mask with PI
+    x= x>>(31-qN);              // Note: SIGNED shift! (to qN)
+    x= x*x>>(2*qN-14);          // x=x^2 To Q14
+
+    y= B - (x*C>>14);           // B - x^2*C
+    y= ((1<<qA)-(x*y>>16))<<4;       // A - x^2*(B-x^2*C)
+
+    return c>=0 ? y : -y;
+}
+#endif
+extern fixed_t finesinet[10240];
+//extern boolean demoplayback;
+extern u32 last_fs_count;
+
+extern fixed_t fine_sincos(int x);
+extern fixed_t finesine(int x);
+extern fixed_t finecosine(int x);
+extern angle_t tantoangle(int x);
+
+#if 0
+extern fixed_t finesinet[10240];
+//extern boolean demoplayback;
+extern u32 last_fs_count;
+static inline fixed_t finesine(int x)
+{
+//	    u32 start_fs_count = osGetCount();
+fixed_t rv;
+#if 1
+    // S(x) = x * ( (3<<p) - (x*x>>r) ) >> s
+    // n : Q-pos for quarter circle             13
+    // A : Q-pos for output                     12
+    // p : Q-pos for parentheses intermediate   15
+    // r = 2n-p                                 11
+    // s = A-1-p-n                              17
+//if(!demoplayback) {
+#if 0
+    static const int qN = 11, qA= 16, qP= 10, qR= 2*qN-qP, qS= qN+qP+1-qA;
+// qR = (2*11)-10 = 22 - 10 = 12
+// qS = 11+10+1-16=22-16=6
+
+    x= x<<(30-qN);          // shift to full s32 range (Q13->Q30)
+
+
+
+    if( (x^(x<<1)) < 0)     // test for quadrant 1 or 2
+        x= (1<<31) - x;
+
+    x= x>>(30-qN);
+
+    return (x * ( (3<<qP) - (x*x>>qR) ) >> qS) + 1;
+#endif
+
+    x = x << 19;          // shift to full s32 range (Q13->Q30)
+
+	// test for quadrant 1 or 2
+    if ((x ^ (x << 1)) < 0)     
+	{
+        x = (1<<31) - x;
+	}
+    x = x >> 19;
+
+    rv = (x * (3072 - (x*x >> 12)) >> 6);
+#endif
+//}
+	#if 0
+    int c, y;
+    static const int qN= 13, qA= 12, B=19900, C=3516;
+
+    switch (x) {
+        case 1:
+        case 4095:
+        case 8193: {
+            return 50;
+        }
+        break;
+
+        case 4097:
+        case 8191: {
+            return -50;
+        }
+        break;
+
+default:
+{
+    x = x << 2;
+
+    c= x<<(30-qN);              // Semi-circle info into carry.
+    x -= 1<<qN;                 // sine -> cosine calc
+
+    x= (x<<(31-qN));              // Mask with PI
+    x= x>>(31-qN);              // Note: SIGNED shift! (to qN)
+    x= x*x>>(2*qN-14);          // x=x^2 To Q14
+
+    y= B - (x*C>>14);           // B - x^2*C
+    y= ((1<<qA)-(x*y>>16))<<4;       // A - x^2*(B-x^2*C)
+
+    return c>=0 ? y : -y;
+}
+break;
+}
+return -1;
+#endif
+#if 0
+rv = finesinet[x];
+#endif
+//    last_fs_count = ((osGetCount() - start_fs_count) + last_fs_count) / 2;
+
+return rv;
+
+}
+
+
+static inline fixed_t finecosine(int x)
+{
     return finesine(x + 2048);
-}
-
+}	
+extern angle_t tantoanglet[2049];
 static inline angle_t tantoangle(int x) {
+#if 1
+	if (x == 2048) return 0;
+
     return ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270));
+#endif
+//    return tantoanglet[x];
 }
+#endif
 
 typedef enum
 {
@@ -640,9 +857,9 @@ short BigShort(short dat);
 short LittleShort(short dat);
 long LongSwap(long dat);
 
-fixed_t	FixedMul (fixed_t a, fixed_t b);
-fixed_t FixedDiv (fixed_t a, fixed_t b);
-fixed_t FixedDiv2(fixed_t a, fixed_t b);
+//fixed_t	FixedMul (fixed_t a, fixed_t b);
+//fixed_t FixedDiv (fixed_t a, fixed_t b);
+//fixed_t FixedDiv2(fixed_t a, fixed_t b);
 
 //extern fixed_t FixedMul2 (fixed_t a, fixed_t b);// ASM MIPS CODE
 //extern fixed_t FixedDiv3 (fixed_t a, fixed_t b);// ASM MIPS CODE
@@ -659,9 +876,10 @@ fixed_t FixedDiv2(fixed_t a, fixed_t b);
 
 #else
 
-#define	LONGSWAP(x)     LongSwap(x)
+#define	LONGSWAP(x)    LongSwap(x)
 #define	LITTLESHORT(x)  LittleShort(x)
-#define	BIGSHORT(x)     BigShort(x)
+// these were two separate functions originally but they compile to the same code
+#define	BIGSHORT(x)     LittleShort(x)
 
 #endif // __BIG_ENDIAN__
 

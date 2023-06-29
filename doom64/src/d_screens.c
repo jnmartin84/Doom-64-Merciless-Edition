@@ -1,75 +1,87 @@
-/* D_screens.c */
-
 #include "i_main.h"
 #include "doomdef.h"
 #include "r_local.h"
 #include "st_main.h"
 
-int D_RunDemo(char *name, skill_t skill, int map) // 8002B2D0
-{
-  int lump;
-  int exit;
-
-  demo_p = Z_Alloc(16000, PU_STATIC, NULL);
-
-  lump = W_GetNumForName(name);
-  W_ReadLump(lump, demo_p, dec_d64);
-  exit = G_PlayDemoPtr(skill, map);
-  Z_Free(demo_p);
-
-  return exit;
-}
-
 extern int DefaultConfiguration[5][13];
-int D_TitleMap(void) // 8002B358
+
+#define COLOR_BLACK (GPACK_RGBA5551(0, 0, 0, 0) << 16 | GPACK_RGBA5551(0, 0, 0, 0))
+#define COLOR_WHITE 0xffffffff
+#define COLOR_WARNING 0xc00000ff
+
+int D_RunDemo(char *name, skill_t skill, int map)
 {
-  int exit;
+    int lump;
+    int exit;
 
-  D_OpenControllerPak();
+    demo_p = Z_Alloc(16000, PU_STATIC, NULL);
 
-  demo_p = Z_Alloc(16000, PU_STATIC, NULL);
-  D_memset(demo_p, 0, 16000);
-  D_memcpy(demo_p, DefaultConfiguration[0], 13*sizeof(int));
-  exit = G_PlayDemoPtr(2*(I_Random()%3), 33); // [Immorpher] Randomize the intro fun a bit!
-  Z_Free(demo_p);
+    lump = W_GetNumForName(name);
+    W_ReadLump(lump, demo_p, dec_d64);
 
-  return exit;
+    exit = G_PlayDemoPtr(skill, map);
+
+    Z_Free(demo_p);
+
+    return exit;
 }
 
-int D_WarningTicker(void) // 8002B3E8
+int D_TitleMap(void)
+{
+    int exit;
+
+    D_OpenControllerPak();
+
+    demo_p = Z_Alloc(16000, PU_STATIC, NULL);
+
+    D_memset(demo_p, 0, 16000);
+    D_memcpy(demo_p, DefaultConfiguration[0], 13 * sizeof(int));
+
+    // [Immorpher] Randomize the intro fun a bit!
+    exit = G_PlayDemoPtr(2 * (I_Random() % 3), 33);
+
+    Z_Free(demo_p);
+
+    return exit;
+}
+
+int D_WarningTicker(void)
 {
     if ((gamevbls < gametic) && !(gametic & 7))
+    {
         MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+    }
+
     return 0;
 }
 
-void D_DrawWarning(void) // 8002B430
+void D_DrawWarning(void)
 {
     I_ClearFrame();
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_FILL);
-    gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
+    gDPSetRenderMode(GFX1++, G_RM_NOOP, G_RM_NOOP2);
     gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
-    gDPSetFillColor(GFX1++, GPACK_RGBA5551(0,0,0,0) << 16 | GPACK_RGBA5551(0,0,0,0));
-    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+    gDPSetFillColor(GFX1++, COLOR_BLACK);
+    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
 
     if (MenuAnimationTic & 1)
-        ST_DrawString(-1,  30, "WARNING!", 0xc00000ff);
+        ST_DrawString(-1, 30, "WARNING!", COLOR_WARNING);
 
-    ST_DrawString(-1,  60, "nintendo 64 controller", 0xffffffff);
-    ST_DrawString(-1,  80, "is not connected.", 0xffffffff);
-    ST_DrawString(-1, 120, "please turn off your", 0xffffffff);
-    ST_DrawString(-1, 140, "nintendo 64 system.", 0xffffffff);
-    ST_DrawString(-1, 180, "plug in your nintendo 64", 0xffffffff);
-    ST_DrawString(-1, 200, "controller and turn it on.", 0xffffffff);
+    ST_DrawString(-1, 60, "nintendo 64 controller", COLOR_WHITE);
+    ST_DrawString(-1, 80, "is not connected.", COLOR_WHITE);
+    ST_DrawString(-1, 120, "please turn off your", COLOR_WHITE);
+    ST_DrawString(-1, 140, "nintendo 64 system.", COLOR_WHITE);
+    ST_DrawString(-1, 180, "plug in your nintendo 64", COLOR_WHITE);
+    ST_DrawString(-1, 200, "controller and turn it on.", COLOR_WHITE);
 
     I_DrawFrame();
 }
 
-int D_LegalTicker(void) // 8002B5F8
+int D_LegalTicker(void)
 {
-    if ((ticon - last_ticon) >= 150) // 5 * TICRATE
+    if ((ticon - last_ticon) >= (5 * TICRATE))
     {
         text_alpha -= 8;
         if (text_alpha < 0)
@@ -81,94 +93,88 @@ int D_LegalTicker(void) // 8002B5F8
     return 0;
 }
 
-void D_DrawLegal(void) // 8002B644
+void D_DrawLegal(void)
 {
     I_ClearFrame();
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_FILL);
-    gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
+    gDPSetRenderMode(GFX1++, G_RM_NOOP, G_RM_NOOP2);
     gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
-    gDPSetFillColor(GFX1++, GPACK_RGBA5551(0,0,0,0) << 16 | GPACK_RGBA5551(0,0,0,0));
-    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+    gDPSetFillColor(GFX1++, COLOR_BLACK);
+    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
 
     M_DrawBackground(27, 74, text_alpha, "USLEGAL");
 
-    if (FilesUsed > -1) {
-        ST_DrawString(-1, 200, "hold \x8d to manage pak", text_alpha | 0xffffff00);
+    if (FilesUsed > -1)
+    {
+        ST_DrawString(-1, 200, "hold \x8d to manage pak", text_alpha | (COLOR_WHITE & ~0xff));
     }
 
     I_DrawFrame();
 }
 
-int D_NoPakTicker(void) // 8002B7A0
+int D_NoPakTicker(void)
 {
-    if ((ticon - last_ticon) >= 240) // 8 * TICRATE
+    if ((ticon - last_ticon) >= (8 * TICRATE))
         return 8;
 
     return 0;
 }
 
-void D_DrawNoPak(void) // 8002B7F4
+void D_DrawNoPak(void)
 {
     I_ClearFrame();
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_FILL);
-    gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
+    gDPSetRenderMode(GFX1++, G_RM_NOOP, G_RM_NOOP2);
     gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
-    gDPSetFillColor(GFX1++, GPACK_RGBA5551(0,0,0,0) << 16 | GPACK_RGBA5551(0,0,0,0));
-    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+    gDPSetFillColor(GFX1++, COLOR_BLACK);
+    gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
 
-    ST_DrawString(-1,  40, "no controller pak.", 0xffffffff);
-    ST_DrawString(-1,  60, "your game cannot", 0xffffffff);
-    ST_DrawString(-1,  80, "be saved.", 0xffffffff);
-    ST_DrawString(-1, 120, "please turn off your", 0xffffffff);
-    ST_DrawString(-1, 140, "nintendo 64 system", 0xffffffff);
-    ST_DrawString(-1, 160, "before inserting a", 0xffffffff);
-    ST_DrawString(-1, 180, "controller pak.", 0xffffffff);
+    ST_DrawString(-1, 40, "no controller pak.", COLOR_WHITE);
+    ST_DrawString(-1, 60, "your game cannot", COLOR_WHITE);
+    ST_DrawString(-1, 80, "be saved.", COLOR_WHITE);
+    ST_DrawString(-1, 120, "please turn off your", COLOR_WHITE);
+    ST_DrawString(-1, 140, "nintendo 64 system", COLOR_WHITE);
+    ST_DrawString(-1, 160, "before inserting a", COLOR_WHITE);
+    ST_DrawString(-1, 180, "controller pak.", COLOR_WHITE);
 
     I_DrawFrame();
 }
 
-void D_SplashScreen(void) // 8002B988
+void D_SplashScreen(void)
 {
-    /* */
-	/* Check if the n64 control is connected */
-	/* if not connected, it will show the Warning screen */
-	/* */
-    if ((gamepad_bit_pattern & 1) == 0) {
-        MiniLoop(NULL, NULL,D_WarningTicker,D_DrawWarning);
+    // Check if the n64 control is connected
+    // if not connected, it will show the Warning screen
+    if ((gamepad_bit_pattern & 1) == 0)
+    {
+        MiniLoop(NULL, NULL, D_WarningTicker, D_DrawWarning);
     }
 
-    /* */
-    /* Check if the n64 controller Pak is connected */
-    /* */
+    // Check if the n64 controller Pak is connected
     I_CheckControllerPak();
 
-    /* */
-    /* if not connected, it will show the NoPak screen */
-    /* */
-    if (FilesUsed < 0) {
+    // if not connected, it will show the NoPak screen
+    if (FilesUsed < 0)
+    {
         last_ticon = 0;
         MiniLoop(NULL, NULL, D_NoPakTicker, D_DrawNoPak);
     }
 
-    /* */
-    /* show the legals screen */
-    /* */
-
+    // show the legals screen
     text_alpha = 0xff;
     last_ticon = 0;
     MiniLoop(NULL, NULL, D_LegalTicker, D_DrawLegal);
 }
 
-static int cred_step;   // 800B2210
-static int cred1_alpha; // 800B2214
-static int cred2_alpha; // 800B2218
-static int cred_next;   // 800B2218
+static int cred_step;
+static int cred1_alpha; 
+static int cred2_alpha; 
+static int cred_next;   
 
-int D_Credits(void) // 8002BA34
+int D_Credits(void)
 {
     int exit;
 
@@ -181,10 +187,11 @@ int D_Credits(void) // 8002BA34
     return exit;
 }
 
-int D_CreditTicker(void) // 8002BA88
+int D_CreditTicker(void)
 {
     if (((u32)ticbuttons[0] >> 16) != 0)
-        return ga_exit;
+{        return ga_exit;
+}
 
     if ((cred_next == 0) || (cred_next == 1))
     {
@@ -209,9 +216,9 @@ int D_CreditTicker(void) // 8002BA88
         }
         else if (cred_step == 2)
         {
-            if ((ticon - last_ticon) >= 180) // 6 * TICRATE
-                cred_step = 3;
-        }
+            if ((ticon - last_ticon) >= (6 * TICRATE))
+{                cred_step = 3;
+}        }
         else
         {
             cred1_alpha -= 8;
@@ -226,12 +233,17 @@ int D_CreditTicker(void) // 8002BA88
         }
     }
     else if (cred_next == 2)
-        return ga_exitdemo;
-
+{        return ga_exitdemo;
+}
     return ga_nothing;
 }
 
-void D_CreditDrawer(void) // 8002BBE4
+// Background Color (Dark Blue)
+#define COLOR_CREDIT_BG1(color) (GPACK_RGBA5551(0, 0, (color), 255) << 16 | GPACK_RGBA5551(0, 0, (color), 255))
+// Background Color (Dark Grey)
+#define COLOR_CREDIT_BG2(color) (GPACK_RGBA5551((color), (color), (color), 255) << 16 | GPACK_RGBA5551((color), (color), (color), 255))
+
+void D_CreditDrawer(void)
 {
     int color;
 
@@ -239,15 +251,14 @@ void D_CreditDrawer(void) // 8002BBE4
 
     gDPPipeSync(GFX1++);
     gDPSetCycleType(GFX1++, G_CYC_FILL);
-    gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
+    gDPSetRenderMode(GFX1++, G_RM_NOOP, G_RM_NOOP2);
     gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
 
     if (cred_next == 0)
     {
-        // Set Background Color (Dark Blue)
         color = (cred1_alpha * 16) / 255;
-        gDPSetFillColor(GFX1++, GPACK_RGBA5551(color,0,0,255) << 16 | GPACK_RGBA5551(color,0,0,255));
-        gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+        gDPSetFillColor(GFX1++, COLOR_CREDIT_BG1(color));
+        gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
 
         M_DrawBackground(68, 21, cred1_alpha, "IDCRED1");
         M_DrawBackground(32, 41, cred2_alpha, "IDCRED2");
@@ -256,10 +267,9 @@ void D_CreditDrawer(void) // 8002BBE4
     {
         if ((cred_next == 1) || (cred_next == 2))
         {
-            // Set Background Color (Dark Grey)
             color = (cred1_alpha * 30) / 255;
-            gDPSetFillColor(GFX1++, GPACK_RGBA5551(color,color,color,255) << 16 | GPACK_RGBA5551(color,color,color,255));
-            gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
+            gDPSetFillColor(GFX1++, COLOR_CREDIT_BG2(color));
+            gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD - 1, SCREEN_HT - 1);
 
             M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1");
             M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2");
@@ -269,7 +279,7 @@ void D_CreditDrawer(void) // 8002BBE4
     I_DrawFrame();
 }
 
-void D_OpenControllerPak(void) // 8002BE28
+void D_OpenControllerPak(void)
 {
     unsigned int oldbuttons;
 
@@ -284,5 +294,6 @@ void D_OpenControllerPak(void) // 8002BE28
         MiniLoop(M_FadeInStart, M_MenuClearCall, M_ScreenTicker, M_MenuGameDrawer);
         I_WIPE_FadeOutScreen();
     }
+
     return;
 }

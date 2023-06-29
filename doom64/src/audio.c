@@ -1,75 +1,68 @@
 
 #include "audio.h"
 
-#include "graph.h"
+// used by wesssys_exit
+enum RestoreFlag
+{
+	NoRestore,
+	YesRestore
+};
 
-//------------
 extern void N64_wdd_location(char *wdd_location);
 extern void N64_set_output_rate(u32 rate);
 
-extern int wess_driver_num_dma_buffers;       // 8005D948
-extern int wess_driver_num_dma_messages;      // 8005D94C
-extern int wess_driver_dma_buffer_length;   // 8005D950
-extern int wess_driver_extra_samples;         // 8005D954
-extern int wess_driver_frame_lag;              // 8005D958
-extern int wess_driver_voices;                // 8005D95C
-extern int wess_driver_updates;               // 8005D960
-extern int wess_driver_sequences;             // 8005D964
-extern int wess_driver_tracks;                // 8005D968
-extern int wess_driver_gates;                  // 8005D96C
-extern int wess_driver_iters;                  // 8005D970
-extern int wess_driver_callbacks;              // 8005D974
-extern int wess_driver_max_trks_per_seq;      // 8005D978                                                                                        load_sequence_data:80039868(R),
-extern int wess_driver_max_subs_per_trk;       // 8005D97C
-
-/* used by wesssys_exit */
-enum RestoreFlag {NoRestore,YesRestore};
-
-extern void wess_error_callback(char *errstring, int errnum1, int errnum2);
-
 extern int wesssys_init(void);
+extern void wess_error_callback(char *errstring, int errnum1, int errnum2);
 extern void wesssys_exit(enum RestoreFlag rflag);
 
-//------------
+extern int wess_driver_num_dma_buffers;
+extern int wess_driver_num_dma_messages;
+extern int wess_driver_dma_buffer_length;
+extern int wess_driver_extra_samples;
+extern int wess_driver_frame_lag;
+extern int wess_driver_voices;
+extern int wess_driver_updates;
+extern int wess_driver_sequences;
+extern int wess_driver_tracks;
+extern int wess_driver_gates;
+extern int wess_driver_iters;
+extern int wess_driver_callbacks;
+extern int wess_driver_max_trks_per_seq;
+extern int wess_driver_max_subs_per_trk;
 
-#ifndef NOUSEWESSCODE
-//------------
-AMAudioMgr  __am;           //800B4060
-ALVoice     *voice;         //800B40E0
-char        *reverb_status; //800B40E4
-//------------
+ALVoice *voice;
+AMAudioMgr __am;
+AMDMAState dmaState;
+AMDMABuffer *dmaBuffs;
+char *reverb_status;
+u32 audFrameCt = 0;
+u32 nextDMA = 0;
+u32 curAcmdList = 0;
+u32 minFrameSize;
+u32 frameSize;
+u32 maxFrameSize;
+u32 maxRSPCmds;
 
-//------------
-AMDMAState      dmaState;			//800B40C0
-AMDMABuffer		*dmaBuffs;			//800B40CC
-u32             audFrameCt = 0;		//8005D8B0
-u32             nextDMA = 0;		//8005D8B4
-u32             curAcmdList = 0;	//8005D8B8
-u32             minFrameSize;		//800B40D0
-u32             frameSize;			//800B40D4
-u32             maxFrameSize;		//800b40d8
-u32             maxRSPCmds;			//800B40DC
+// Queues and storage for use with audio DMAs
+OSMesgQueue audDMAMessageQ;
+OSIoMesg *audDMAIOMesgBuf;
+OSMesg *audDMAMessageBuf;
 
-/* Queues and storage for use with audio DMA's */
-OSMesgQueue     audDMAMessageQ;		//800B40E8
-OSIoMesg        *audDMAIOMesgBuf;	//800B4100
-OSMesg          *audDMAMessageBuf;	//800B4104
+u32 buf = 0;
+AudioInfo *lastInfo = 0;
 
-u32				buf = 0;			//8005D8BC
-AudioInfo		*lastInfo = 0;		//8005D8C0
+u32 init_completed = 0;
 
-u32				init_completed = 0;	//8005D8C4
+// The maximum number of DMAs any one frame can have.
+#define NUM_DMA_MESSAGES 8
+OSMesgQueue wess_dmaMessageQ;
+OSMesg wess_dmaMessageBuf[NUM_DMA_MESSAGES];
 
-#define NUM_DMA_MESSAGES	8	/* The maximum number of DMAs any one frame can have.*/
-OSMesgQueue     wess_dmaMessageQ;	//800b4108
-OSMesg          wess_dmaMessageBuf[NUM_DMA_MESSAGES];//800b4120
-//------------
-
-int wess_memfill(void *dst, unsigned char fill, int count) // 8002E300
+int wess_memfill(void *dst, unsigned char fill, int count)
 {
-    char *d;
+	char *d;
 
-    d = (char *)dst;
+	d = (char *)dst;
 	while (count != 0)
 	{
 		*d++ = (unsigned char)fill;
@@ -78,7 +71,7 @@ int wess_memfill(void *dst, unsigned char fill, int count) // 8002E300
 	return count;
 }
 
-int wess_rom_copy(char *src, char *dest, int len) // 8002E334
+int wess_rom_copy(char *src, char *dest, int len)
 {
 	OSMesg dummyMesg;
 	OSIoMesg DMAIoMesgBuf;
@@ -95,16 +88,17 @@ int wess_rom_copy(char *src, char *dest, int len) // 8002E334
 	return 0;
 }
 
-s32 milli_to_param(s32 paramvalue, s32 rate) // 8002E3D0
+s32 milli_to_param(s32 paramvalue, s32 rate)
 {
-	return (s32)((paramvalue * rate) / 1000) &~0x7;
+	return (s32)((paramvalue * rate) / 1000) & ~0x7;
 }
 
-void wess_init(WessConfig *wessconfig) // 8002E41C
+void wess_init(WessConfig *wessconfig)
 {
 	ALSynConfig config;
 	f32 samplerate;
-	s32 *params;//Custom reverb
+	// Custom reverb
+	s32 *params;
 	int sections, section_pos;
 
 	// Create audio DMA thread...
@@ -127,29 +121,38 @@ void wess_init(WessConfig *wessconfig) // 8002E41C
 
 	if (config.fxType == WESS_REVERB_CUSTOM)
 	{
-		/* set address reverb table*/
+		// set address reverb table
 		params = wessconfig->revtbl_ptr;
 
 		samplerate = wessconfig->outputsamplerate;
-		if ((u32)samplerate < 0) { samplerate += 4.2949673e9; }
+		if ((u32)samplerate < 0)
+		{
+			samplerate += 4.2949673e9;
+		}
 
-		/* total allocated memory */
+		// total allocated memory
 		params[1] = milli_to_param(params[1], (u32)samplerate);
 
-		/* total allocated memory -> params[0]*/
+		// total allocated memory -> params[0]
 		section_pos = 0;
 		for (sections = 0; sections < params[0]; sections++)
 		{
 			samplerate = wessconfig->outputsamplerate;
-			if ((u32)samplerate < 0) { samplerate += 4.2949673e9; }
+			if ((u32)samplerate < 0)
+			{
+				samplerate += 4.2949673e9;
+			}
 
-			/* input */
+			// input
 			params[2 + section_pos] = milli_to_param(params[2 + section_pos], (u32)samplerate);
 
 			samplerate = wessconfig->outputsamplerate;
-			if ((u32)samplerate < 0) { samplerate += 4.2949673e9; }
+			if ((u32)samplerate < 0)
+			{
+				samplerate += 4.2949673e9;
+			}
 
-			/* output */
+			// output
 			params[3 + section_pos] = milli_to_param(params[3 + section_pos], (u32)samplerate);
 
 			section_pos += 8;
@@ -164,42 +167,43 @@ void wess_init(WessConfig *wessconfig) // 8002E41C
 	init_completed = 1;
 }
 
+//
+// Audio Manager API
+//
 
-/*-------------------*/
-/* Audio Manager API */
-/*-------------------*/
-
-void amCreateAudioMgr(ALSynConfig *config, WessConfig *wessconfig) // 8002E610
+void amCreateAudioMgr(ALSynConfig *config, WessConfig *wessconfig)
 {
 	f32 fsize;
 	f32 fsize2;
 	int frameSize1;
 	int i;
 
-	/*
-     * Calculate the frame sample parameters from the
-     * video field rate and the output rate
-     */
+	// Calculate the frame sample parameters from the
+	// video field rate and the output rate
 	fsize = (f32)(config->outputRate) / wessconfig->audioframerate;
 	frameSize1 = (s32)fsize;
 
-	if (frameSize1 < 0) {
+	if (frameSize1 < 0)
+	{
 		frameSize1 = -1;
 	}
 
 	fsize2 = (float)frameSize1;
-	if (frameSize1 < 0) {
+	if (frameSize1 < 0)
+	{
 		fsize2 += 4294967296.0;
 	}
 
 	frameSize = frameSize1 + 1;
-	if (fsize <= fsize2) {
+	if (fsize <= fsize2)
+	{
 		frameSize = frameSize1;
 	}
 
 	if (frameSize & 15)
+	{
 		frameSize = (frameSize & ~0xf) + 16;
-
+	}
 	minFrameSize = frameSize - 16;
 	maxFrameSize = frameSize + wess_driver_extra_samples + 16;
 
@@ -212,7 +216,7 @@ void amCreateAudioMgr(ALSynConfig *config, WessConfig *wessconfig) // 8002E610
 	dmaBuffs = (AMDMABuffer *)alHeapAlloc(config->heap, 1, wess_driver_num_dma_buffers * sizeof(AMDMABuffer));
 	wess_memfill(dmaBuffs, 0, wess_driver_num_dma_buffers * sizeof(AMDMABuffer));
 
-	/* allocate buffers for voices */
+	// allocate buffers for voices
 	dmaBuffs[0].node.prev = 0;
 	dmaBuffs[0].node.next = 0;
 
@@ -223,25 +227,25 @@ void amCreateAudioMgr(ALSynConfig *config, WessConfig *wessconfig) // 8002E610
 		wess_memfill(dmaBuffs[i].ptr, 0, wess_driver_dma_buffer_length);
 	}
 
-	/* last buffer already linked, but still needs buffer */
+	// last buffer already linked, but still needs buffer
 	dmaBuffs[i].ptr = alHeapAlloc(config->heap, 1, wess_driver_dma_buffer_length);
 	wess_memfill(dmaBuffs[i].ptr, 0, wess_driver_dma_buffer_length);
 
 	for (i = 0; i < NUM_ACMD_LISTS; i++)
 	{
-		__am.ACMDList[i] = (Acmd*)alHeapAlloc(config->heap, 1, wessconfig->maxACMDSize * sizeof(Acmd));
+		__am.ACMDList[i] = (Acmd *)alHeapAlloc(config->heap, 1, wessconfig->maxACMDSize * sizeof(Acmd));
 		wess_memfill(__am.ACMDList[i], 0, wessconfig->maxACMDSize * sizeof(Acmd));
 	}
 
 	maxRSPCmds = wessconfig->maxACMDSize;
 
-	/* initialize the done messages */
+	// initialize the done messages
 	for (i = 0; i < NUM_OUTPUT_BUFFERS; i++)
 	{
 		__am.audioInfo[i] = (AudioInfo *)alHeapAlloc(config->heap, 1, sizeof(AudioInfo));
 		wess_memfill(__am.audioInfo[i], 0, sizeof(AudioInfo));
 
-		/* allocate output buffer */
+		// allocate output buffer
 		__am.audioInfo[i]->data = alHeapAlloc(config->heap, 1, maxFrameSize << 2);
 		wess_memfill(__am.audioInfo[i]->data, 0, maxFrameSize << 2);
 	}
@@ -257,60 +261,68 @@ void amCreateAudioMgr(ALSynConfig *config, WessConfig *wessconfig) // 8002E610
 	alInit(&__am.g, config);
 }
 
-OSTask * wess_work(void) // 8002EB2C
+OSTask *wess_work(void)
 {
 	OSTask *validTask;
 
 	if (init_completed == 0)
+	{
 		return (OSTask *)NULL;
+	}
 
 	validTask = __amHandleFrameMsg(__am.audioInfo[buf]);
-
 	lastInfo = __am.audioInfo[buf];
-
 	buf++;
+
 	if (buf == NUM_OUTPUT_BUFFERS)
+	{
 		buf = 0;
+	}
 
 	if (validTask)
-		curAcmdList ^= 1; /* swap which acmd list you use each frame */
+	{
+		// swap which acmd list you use each frame
+		curAcmdList ^= 1;
+	}
 
 	return validTask;
 }
 
-OSTask *__amHandleFrameMsg(AudioInfo *info) // 8002EBD8
+OSTask *__amHandleFrameMsg(AudioInfo *info)
 {
-	s16		*audioPtr;
-	Acmd	*cmdp;
-	s32		cmdLen;
-	int		samplesLeft;
+	s16 *audioPtr;
+	Acmd *cmdp;
+	s32 cmdLen;
+	int samplesLeft;
 
-	/* audFrameCnt updated here */
-	__clearAudioDMA(); /* call once a frame, before doing alAudioFrame */
+	// call once a frame, before doing alAudioFrame
+	// audFrameCnt updated here
+	__clearAudioDMA();
 
-	audioPtr = (s16 *)osVirtualToPhysical(info->data); /* info->data addr of current buffer */
+	// info->data addr of current buffer
+	audioPtr = (s16 *)osVirtualToPhysical(info->data);
 
-	/* set up the next DMA transfer from DRAM to the audio interface buffer. */
-	/* lastInfo->data is the buffer used in the last audio frame. It should be full. */
+	// set up the next DMA transfer from DRAM to the audio interface buffer.
+	// lastInfo->data is the buffer used in the last audio frame. It should be full.
 	if (lastInfo)
 	{
 		osAiSetNextBuffer(lastInfo->data, lastInfo->frameSamples << 2);
 	}
 
-	/* calculate how many samples needed for this frame to keep the DAC full */
-	/* this will vary slightly frame to frame, must recalculate every frame */
-	samplesLeft = osAiGetLength() >> 2; /* divide by four, to convert bytes */
+	// calculate how many samples needed for this frame to keep the DAC full
+	// this will vary slightly frame to frame, must recalculate every frame
 
-	/* to stereo 16 bit samples */
+	// divide by four, to convert bytes
+	// to stereo 16 bit samples
+	samplesLeft = osAiGetLength() >> 2;
 	info->frameSamples = (((frameSize - samplesLeft) + wess_driver_extra_samples) & ~0xf) + 16;
 
-	/* no longer necessary to have extra samples, because the buffers */
-	/* will be swapped exactly when the buffer runs out */
-	/* info->frameSamples = frameSize; */
-
+	// no longer necessary to have extra samples, because the buffers
+	// will be swapped exactly when the buffer runs out
 	if (info->frameSamples < minFrameSize)
+	{
 		info->frameSamples = minFrameSize;
-
+	}
 	cmdp = alAudioFrame(__am.ACMDList[curAcmdList], &cmdLen, audioPtr, info->frameSamples);
 
 	if (maxRSPCmds < cmdLen)
@@ -318,7 +330,7 @@ OSTask *__amHandleFrameMsg(AudioInfo *info) // 8002EBD8
 		wess_error_callback("MAXRSPCMDS", 0, 0);
 	}
 
-	/* this is the task for the next audio frame */
+	// this is the task for the next audio frame
 	info->task.t.data_ptr = (u64 *)__am.ACMDList[curAcmdList];
 	info->task.t.data_size = (u32)((int)(((int)cmdp - (int)__am.ACMDList[curAcmdList]) >> 3) << 3);
 	info->task.t.type = M_AUDTASK;
@@ -334,41 +346,45 @@ OSTask *__amHandleFrameMsg(AudioInfo *info) // 8002EBD8
 	return (OSTask *)&info->task;
 }
 
-s32 __amDMA(s32 addr, s32 len, void *state) // 8002ED74
+s32 __amDMA(s32 addr, s32 len, void *state)
 {
-	char            *foundBuffer;
-	s32             delta, addrEnd, buffEnd;
-	AMDMABuffer     *dmaPtr, *lastDmaPtr;
+	char *foundBuffer;
+	s32 delta, addrEnd, buffEnd;
+	AMDMABuffer *dmaPtr, *lastDmaPtr;
 
 	lastDmaPtr = 0;
 	dmaPtr = dmaState.firstUsed;
-	addrEnd = addr+len;
+	addrEnd = addr + len;
 
-	/* first check to see if a currently existing buffer contains the
-	sample that you need.  */
+	// first check to see if a currently existing buffer contains the sample that you need.
 	while (dmaPtr)
 	{
 		buffEnd = dmaPtr->startAddr + wess_driver_dma_buffer_length;
-		if (dmaPtr->startAddr > addr) /* since buffers are ordered */
-			break;                   /* abort if past possible */
 
-		else if (addrEnd <= buffEnd) /* yes, found a buffer with samples */
+		// since buffers are ordered
+		// abort if past possible
+		if (dmaPtr->startAddr > addr)
 		{
-			dmaPtr->lastFrame = audFrameCt; /* mark it used */
+			break;
+		}
+		// yes, found a buffer with samples
+		else if (addrEnd <= buffEnd)
+		{
+			// mark it used
+			dmaPtr->lastFrame = audFrameCt;
 			foundBuffer = dmaPtr->ptr + addr - dmaPtr->startAddr;
 			return (int)osVirtualToPhysical(foundBuffer);
 		}
 		lastDmaPtr = dmaPtr;
-		dmaPtr = (AMDMABuffer*)dmaPtr->node.next;
+		dmaPtr = (AMDMABuffer *)dmaPtr->node.next;
 	}
 
-	/* get here, and you didn't find a buffer, so dma a new one */
+	// get here, and you didn't find a buffer, so dma a new one
 
-	/* get a buffer from the free list */
+	// get a buffer from the free list
 	dmaPtr = dmaState.firstFree;
 
-	/* be sure you have a buffer, */
-	/* if you don't have one, you're fucked */
+	// be sure you have a buffer
 	if (!(dmaPtr))
 	{
 		lastDmaPtr = 0;
@@ -376,24 +392,29 @@ s32 __amDMA(s32 addr, s32 len, void *state) // 8002ED74
 		return (int)osVirtualToPhysical(dmaState.firstUsed);
 	}
 
-	dmaState.firstFree = (AMDMABuffer*)dmaPtr->node.next;
-	alUnlink((ALLink*)dmaPtr);
+	dmaState.firstFree = (AMDMABuffer *)dmaPtr->node.next;
+	alUnlink((ALLink *)dmaPtr);
 
-	/* add it to the used list */
-	if (lastDmaPtr) /* if you have other dmabuffers used, add this one */
-	{              /* to the list, after the last one checked above */
-		alLink((ALLink*)dmaPtr, (ALLink*)lastDmaPtr);
+	// add it to the used list
+	if (lastDmaPtr)
+	{
+		// if you have other dmabuffers used, add this one
+		// to the list, after the last one checked above
+		alLink((ALLink *)dmaPtr, (ALLink *)lastDmaPtr);
 	}
-	else if (dmaState.firstUsed) /* if this buffer is before any others */
-	{                           /* jam at begining of list */
+	else if (dmaState.firstUsed)
+	{
+		// if this buffer is before any others
+		// jam at begining of list
 		lastDmaPtr = dmaState.firstUsed;
 		dmaState.firstUsed = dmaPtr;
-		dmaPtr->node.next = (ALLink*)lastDmaPtr;
+		dmaPtr->node.next = (ALLink *)lastDmaPtr;
 		dmaPtr->node.prev = 0;
-		lastDmaPtr->node.prev = (ALLink*)dmaPtr;
+		lastDmaPtr->node.prev = (ALLink *)dmaPtr;
 	}
-	else /* no buffers in list, this is the first one */
+	else
 	{
+		// no buffers in list, this is the first one
 		dmaState.firstUsed = dmaPtr;
 		dmaPtr->node.next = 0;
 		dmaPtr->node.prev = 0;
@@ -403,18 +424,19 @@ s32 __amDMA(s32 addr, s32 len, void *state) // 8002ED74
 	delta = addr & 0x1;
 	addr -= delta;
 	dmaPtr->startAddr = addr;
-	dmaPtr->lastFrame = audFrameCt;  /* mark it */
+	// mark it
+	dmaPtr->lastFrame = audFrameCt;
 
 	osPiStartDma(&audDMAIOMesgBuf[nextDMA++], OS_MESG_PRI_HIGH, OS_READ,
-		(u32)addr, foundBuffer, wess_driver_dma_buffer_length, &audDMAMessageQ);
+				 (u32)addr, foundBuffer, wess_driver_dma_buffer_length, &audDMAMessageQ);
 
 	return (int)osVirtualToPhysical(foundBuffer) + delta;
 }
 
-ALDMAproc __amDmaNew(AMDMAState **state) // 8002EF48
+ALDMAproc __amDmaNew(AMDMAState **state)
 {
-
-	if (!dmaState.initialized)  /* only do this once */
+	// only do this once
+	if (!dmaState.initialized)
 	{
 		dmaState.firstUsed = 0;
 		dmaState.initialized = 1;
@@ -424,15 +446,15 @@ ALDMAproc __amDmaNew(AMDMAState **state) // 8002EF48
 	return __amDMA;
 }
 
-void __clearAudioDMA(void) // 8002EF7C
+void __clearAudioDMA(void)
 {
-	u32          i;
-	OSIoMesg     *iomsg;
-	AMDMABuffer  *dmaPtr, *nextPtr;
+	u32 i;
+	OSIoMesg *iomsg;
+	AMDMABuffer *dmaPtr, *nextPtr;
 
-	/* Don't block here. If dma's aren't complete, you've had an audio */
-	/* overrun. (Bad news, but go for it anyway, and try and recover. */
-	for (i = 0; i<nextDMA; i++)
+	// Don't block here. If dma's aren't complete, you've had an audio
+	// overrun. Bad news, but go for it anyway, and try and recover.
+	for (i = 0; i < nextDMA; i++)
 	{
 		if (osRecvMesg(&audDMAMessageQ, (OSMesg *)&iomsg, OS_MESG_NOBLOCK) == -1)
 		{
@@ -444,22 +466,22 @@ void __clearAudioDMA(void) // 8002EF7C
 
 	while (dmaPtr)
 	{
+		nextPtr = (AMDMABuffer *)dmaPtr->node.next;
 
-		nextPtr = (AMDMABuffer*)dmaPtr->node.next;
-
-		/* remove old dma's from list */
-		/* Can change FRAME_LAG value if we want.  Should be at least one.  */
-		/* Larger values mean more buffers needed, but fewer DMA's */
-		if (dmaPtr->lastFrame + wess_driver_frame_lag  < audFrameCt)
+		// remove old dma's from list
+		// Can change FRAME_LAG value if we want.  Should be at least one.
+		// Larger values mean more buffers needed, but fewer DMA's
+		if (dmaPtr->lastFrame + wess_driver_frame_lag < audFrameCt)
 		{
 			if (dmaState.firstUsed == dmaPtr)
-				dmaState.firstUsed = (AMDMABuffer*)dmaPtr->node.next;
-
-			alUnlink((ALLink*)dmaPtr);
+			{
+				dmaState.firstUsed = (AMDMABuffer *)dmaPtr->node.next;
+			}
+			alUnlink((ALLink *)dmaPtr);
 
 			if (dmaState.firstFree)
 			{
-				alLink((ALLink*)dmaPtr, (ALLink*)dmaState.firstFree);
+				alLink((ALLink *)dmaPtr, (ALLink *)dmaState.firstFree);
 			}
 			else
 			{
@@ -472,14 +494,12 @@ void __clearAudioDMA(void) // 8002EF7C
 		dmaPtr = nextPtr;
 	}
 
-	nextDMA = 0;  /* Reset number of DMAs */
+	nextDMA = 0; // Reset number of DMAs
 	audFrameCt++;
 }
 
-void wess_exit(void) // 8002F0CC
+void wess_exit(void)
 {
 	wesssys_exit(YesRestore);
 	alClose(&__am.g);
 }
-
-#endif // 0
